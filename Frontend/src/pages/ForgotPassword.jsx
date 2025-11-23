@@ -25,13 +25,10 @@ const ForgotPassword = () => {
     }
 
     try {
-      const { data } = await axios.post(
-        `${API_BASE_URL}/auth/forgot-password`,
-        { email }
-      );
+      const url = `${API_BASE_URL}/auth/forgot-password`;
+      const { data } = await axios.post(url, { email });
 
       setSuccess(data.message);
-      // Navigate to reset password page after 2 seconds
       setTimeout(() => {
         navigate("/reset-password", { state: { email } });
       }, 2000);
