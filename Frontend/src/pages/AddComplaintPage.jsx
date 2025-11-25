@@ -434,7 +434,7 @@ export default function AddComplaintPage() {
         }
       } else if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
         // Network error - server unreachable or connection reset
-        setErrors(["Cannot reach the server. Is http://localhost:3001 running? Please check your connection and try again."]);
+        setErrors(["Cannot reach the server. Please check your connection and try again."]);
       } else if (error.request) {
         // Request was made but no response received
         setErrors(["No response from server. The server may be restarting. Please wait a moment and try again."]);

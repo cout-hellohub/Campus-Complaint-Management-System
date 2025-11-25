@@ -22,7 +22,9 @@ backend/node_modules/
 backend/.env
 backend/.env.* !backend/.env.example
 backend/uploads/
+backend/temp/
 backend/AI-LLM/out/
+backend/error.log
 
 # ==========================
 # 🧪 E2E Tests
