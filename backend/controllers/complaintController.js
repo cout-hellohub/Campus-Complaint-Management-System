@@ -3,6 +3,7 @@ import Notification from '../models/Notification.js';
 import { classifyComplaint, classifySubcategory } from '../utils/aiRouting.js';
 import User from '../models/userModel.js';
 import { sendStatusUpdateEmail } from '../utils/emailService.js';
+import { deleteFromCloudinary } from '../utils/fileUploadService.js';
 
 /**
  * Normalize category name to canonical form.
@@ -791,6 +792,17 @@ export const deleteComplaint = async (req, res) => {
         message: 'Complaint not found',
       });
     }
+
+    // --- NEW CODE STARTS HERE: Delete attachments from Cloudinary ---
+    if (complaint.attachments && complaint.attachments.length > 0) {
+      const deletePromises = complaint.attachments.map((fileUrl) => 
+        deleteFromCloudinary(fileUrl)
+      );
+      // We await all file deletions. 
+      // Using Promise.allSettled ensures one failure doesn't stop others.
+      await Promise.allSettled(deletePromises);
+    }
+    // --- NEW CODE ENDS HERE ---
 
     // Remove associated notifications (if any) before deleting the complaint
     try {

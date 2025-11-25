@@ -80,3 +80,37 @@ export const upload = multer({
   limits,
   fileFilter, // We added your new fileFilter here
 });
+
+/**
+* Extracts public ID from Cloudinary URL and deletes the asset.
+ * @param {string} fileUrl - The full Cloudinary URL stored in DB
+ */
+export const deleteFromCloudinary = async (fileUrl) => {
+  if (!fileUrl) return;
+
+  try {
+    // 1. Determine resource type (image or video) based on URL content or extension
+    const isVideo = fileUrl.includes('/video/') || fileUrl.match(/\.(mp4|mov|avi|mkv)$/i);
+    const resourceType = isVideo ? 'video' : 'image';
+
+    // 2. Extract Public ID using Regex
+    // Matches everything after '/upload/' (optional version 'v1234/') and before the file extension
+    const regex = /\/upload\/(?:v\d+\/)?(.+)\.[a-zA-Z0-9]+$/;
+    const match = fileUrl.match(regex);
+
+    if (match && match[1]) {
+      const publicId = match[1]; // e.g., "campus-complaints/user123/my-image"
+      
+      console.log(`Deleting from Cloudinary: ${publicId} (${resourceType})`);
+      
+      await cloudinary.uploader.destroy(publicId, {
+        resource_type: resourceType
+      });
+    } else {
+      console.warn('Could not extract publicId from URL:', fileUrl);
+    }
+  } catch (error) {
+    console.error('Cloudinary Delete Error:', error);
+    // We don't throw here to ensure the database delete continues even if cloud delete fails
+  }
+};
