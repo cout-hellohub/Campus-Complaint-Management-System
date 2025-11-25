@@ -97,6 +97,11 @@ app.get("/", (req, res) => {
   res.send("Backend running successfully ");
 });
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use('/api/notifications', notificationRoutes);
