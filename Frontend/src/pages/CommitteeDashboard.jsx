@@ -841,7 +841,7 @@ const AssignedComplaintsPage = () => {
 };
 
 // C4: Department/committee analytics dashboard (committee-scoped, cached, refreshable)
-const AnalyticsDashboardPage = () => {
+const AnalyticsDashboardPage = ({ profileDisplayName = "" }) => {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -881,7 +881,7 @@ const AnalyticsDashboardPage = () => {
       return fallback;
     }
   };
-  const committeeDisplayName = resolveCommitteeDisplayName();
+  const committeeDisplayName = profileDisplayName.trim() || resolveCommitteeDisplayName();
 
   const CACHE_KEY = "committee_analytics";
   const [complaintsList, setComplaintsList] = useState([]);
@@ -1966,7 +1966,7 @@ export default function CommitteeDashboard() {
               path="assigned-complaints"
               element={<AssignedComplaintsPage />}
             />
-            <Route path="analytics" element={<AnalyticsDashboardPage />} />
+            <Route path="analytics" element={<AnalyticsDashboardPage profileDisplayName={profileName} />} />
           </Routes>
         </main>
       </div>
