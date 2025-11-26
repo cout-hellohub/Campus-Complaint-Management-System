@@ -864,6 +864,25 @@ const AnalyticsDashboardPage = () => {
     committeeType = null;
   }
 
+  const resolveCommitteeDisplayName = () => {
+    const fallback = committeeType || "Committee";
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("ccms_user") : null;
+      if (!stored) return fallback;
+      const parsed = JSON.parse(stored);
+      const name = typeof parsed?.name === "string" ? parsed.name.trim() : "";
+      if (name) return name;
+      const type = typeof parsed?.committeeType === "string" ? parsed.committeeType.trim() : "";
+      if (type) return type;
+      const committee = typeof parsed?.committee === "string" ? parsed.committee.trim() : "";
+      if (committee) return committee;
+      return fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const committeeDisplayName = resolveCommitteeDisplayName();
+
   const CACHE_KEY = "committee_analytics";
   const [complaintsList, setComplaintsList] = useState([]);
   const navigate = useNavigate();
@@ -1118,7 +1137,7 @@ const AnalyticsDashboardPage = () => {
       <div className="bg-white p-6 rounded-xl shadow-lg">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">{committeeType || 'Committee'} Analytics</h1>
+          <h1 className="text-2xl font-bold text-gray-800">{committeeDisplayName} Analytics</h1>
           <p className="mt-2 text-gray-600">Overview of complaints handled by your committee.</p>
         </div>
 
