@@ -264,6 +264,12 @@ const AssignedComplaintsPage = () => {
   };
 
   const openStatusModal = (complaint) => {
+    if (!complaint) return;
+    const normalizedStatus = (complaint.status || "").toLowerCase();
+    if (normalizedStatus === "resolved" || normalizedStatus === "rejected") {
+      showToast("You cannot update complaints that are already resolved or rejected.", "error");
+      return;
+    }
     setSelectedComplaint(complaint);
     setNewStatus(complaint.status);
     setStatusDescription("");
@@ -1393,8 +1399,8 @@ const CommitteeDashboardHome = () => {
   try {
     if (userStr) {
       const user = JSON.parse(userStr);
-      // specific logic to find the best display name
-      committeeName = user.committeeType || user.name || "Committee";
+      const displayName = (user?.name && user.name.trim()) || (user?.committeeType && user.committeeType.trim());
+      committeeName = displayName || "Committee";
     }
   } catch (e) {
     // Fallback to default if parsing fails
@@ -1644,12 +1650,12 @@ export default function CommitteeDashboard() {
   } catch (e) {
     currentUser = null;
   }
-  const profileInitial = currentUser?.committeeType
-    ? currentUser.committeeType.charAt(0).toUpperCase()
-    : currentUser?.name
-    ? currentUser.name.charAt(0).toUpperCase()
-    : 'C';
-  const profileName = currentUser?.committeeType ?? currentUser?.name ?? 'Committee Name';
+  const profileDisplayName =
+    (currentUser?.name && currentUser.name.trim()) ||
+    (currentUser?.committeeType && currentUser.committeeType.trim()) ||
+    "Committee Name";
+  const profileInitial = profileDisplayName.charAt(0).toUpperCase();
+  const profileName = profileDisplayName;
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -1751,6 +1757,34 @@ export default function CommitteeDashboard() {
       }
     } catch (err) {
       console.error("Delete notification error:", err);
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const ids = (notifications || []).map((notification) => notification?._id).filter(Boolean);
+      if (ids.length === 0) {
+        return;
+      }
+
+      await Promise.all(
+        ids.map((id) =>
+          axios.delete(`${API_BASE_URL}/notifications/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+        )
+      );
+
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Clear all notifications error:", err);
     }
   };
 
@@ -1881,6 +1915,7 @@ export default function CommitteeDashboard() {
           loadingNotifications={loadingNotifications}
           onBellClick={handleBellClick}
           onMarkAllRead={markAllAsRead}
+          onClearAllNotifications={clearAllNotifications}
           onNotificationClick={handleNotificationClick}
           onNotificationDelete={handleNotificationDelete}
           notificationDropdownOpen={notificationDropdownOpen}

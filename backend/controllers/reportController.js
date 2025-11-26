@@ -2,11 +2,21 @@ import PDFDocument from "pdfkit";
 import Complaint from "../models/Complaint.js";
 import { resolveCommitteeCategory } from "./complaintController.js";
 
+const REPORT_TIMEZONE = process.env.REPORT_TIMEZONE || "Asia/Kolkata";
+const REPORT_LOCALE = process.env.REPORT_LOCALE || "en-IN";
+
 function date30DaysAgo() {
   const d = new Date();
   d.setDate(d.getDate() - 30);
   return d;
 }
+
+const formatReportTimestamp = () =>
+  new Intl.DateTimeFormat(REPORT_LOCALE, {
+    timeZone: REPORT_TIMEZONE,
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date());
 
 export const generateMonthlyCommitteeReport = async (req, res) => {
   try {
@@ -49,10 +59,11 @@ export const generateMonthlyCommitteeReport = async (req, res) => {
 
     doc.fontSize(20).text("Committee Monthly Analytics Report", { underline: true });
     doc.moveDown();
+    const generatedAt = formatReportTimestamp();
     doc.fontSize(14).text(`Committee: ${committeeType}`);
     doc.text(`Category Mapped To: ${category}`);
     doc.text(`Report Range: Last 30 Days`);
-    doc.text(`Created on: ${new Date().toLocaleString()}`);
+    doc.text(`Created on: ${generatedAt} (${REPORT_TIMEZONE})`);
 
     doc.moveDown().fontSize(16).text("Summary:");
     doc.fontSize(13).text(`Total Complaints: ${total}`);
@@ -187,9 +198,10 @@ export const generateMonthlyAdminReport = async (req, res) => {
     doc.pipe(res);
 
     // Title
+    const generatedAt = formatReportTimestamp();
     doc.fontSize(22).text('Campus Complaint Resolve - Admin Monthly Report', { align: 'center' });
     doc.moveDown();
-    doc.fontSize(12).text(`Generated: ${new Date().toLocaleString()}`);
+    doc.fontSize(12).text(`Generated: ${generatedAt} (${REPORT_TIMEZONE})`);
     doc.text('Range: Last 30 Days');
     doc.moveDown();
 
