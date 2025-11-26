@@ -1001,6 +1001,12 @@ const AnalyticsPage = () => {
     monthDeltaPct: null,
   });
   const [committeeStats, setCommitteeStats] = React.useState([]);
+  const [overallCategoryCounts, setOverallCategoryCounts] = React.useState([]);
+  const [overallPriorityCounts, setOverallPriorityCounts] = React.useState({ High: 0, Medium: 0, Low: 0 });
+  const [overallDailyCounts30Days, setOverallDailyCounts30Days] = React.useState([]);
+  const [showGeneratingModal, setShowGeneratingModal] = React.useState(false);
+  const [showDownloadModal, setShowDownloadModal] = React.useState(false);
+  const [pdfBlob, setPdfBlob] = React.useState(null);
 
   const committeeNameMap = {
     Canteen: "Cafeteria Management Committee",
@@ -1012,7 +1018,7 @@ const AnalyticsPage = () => {
     'Annual Fest': "Annual Fest Committee",
     Cultural: "Cultural Committee",
     Placement: "Student Placement Cell",
-    Admin: "Administrative / General Complaints",
+    Admin: "General Complaints",
     // legacy / alternate keys
     "Anti-Ragging": "Internal Complaints Committee",
   };
@@ -1134,6 +1140,59 @@ const AnalyticsPage = () => {
 
       setTopStats({ total, resolved, avgResolutionDays: Number(avgResolutionDays.toFixed(1)), pending, monthDeltaPct, monthCount: countThisMonth });
       setCommitteeStats(committeeArr);
+
+      // Overall Category Breakdown - use same matching logic as committee stats
+      const categories = [
+        'Admin', 'Hostel', 'Tech', 'Canteen', 'Internal Complaints', 'Academic', 'Sports', 'Placement', 'Annual Fest'
+      ];
+      const catCounts = categories.map(cat => {
+        let total = 0;
+        let resolvedCnt = 0;
+        for (const c of complaints) {
+          const raw = (c.category || '').toString().trim();
+          if (!raw) continue;
+
+          const display = committeeNameMap[cat] || cat;
+
+          const isMatch =
+            raw === cat ||
+            raw === display ||
+            raw.toLowerCase().includes(cat.toLowerCase()) ||
+            display.toLowerCase().includes(raw.toLowerCase());
+
+          if (isMatch) {
+            total++;
+            if (c.status === 'resolved') resolvedCnt++;
+          }
+        }
+        const label = (committeeNameMap[cat] || cat).replace(/\s+Committee$/i, '').trim();
+        return { category: label, total, resolved: resolvedCnt };
+      }).filter(c => c.total > 0);
+      setOverallCategoryCounts(catCounts);
+
+      // Priority breakdown
+      setOverallPriorityCounts({
+        High: complaints.filter(c => c.priority === 'High').length,
+        Medium: complaints.filter(c => c.priority === 'Medium').length,
+        Low: complaints.filter(c => c.priority === 'Low').length,
+      });
+
+      // Last 30 days trend
+      const today = new Date();
+      const days = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        days.push(d.toISOString().slice(0,10));
+      }
+      const daily = days.map(ds => ({
+        date: ds,
+        count: complaints.filter(c => {
+          try { return c.createdAt && new Date(c.createdAt).toISOString().slice(0,10) === ds; } catch { return false; }
+        }).length
+      }));
+      setOverallDailyCounts30Days(daily);
+
     } catch (err) {
       console.error('Fetch analytics failed', err);
       setError(err?.response?.data?.message || err.message || 'Failed to fetch analytics');
@@ -1142,16 +1201,35 @@ const AnalyticsPage = () => {
     }
   };
 
+  const handleGenerateReport = async () => {
+    setShowGeneratingModal(true);
+    setShowDownloadModal(false);
+    setPdfBlob(null);
+    try {
+      const token = localStorage.getItem('ccms_token');
+      const response = await axios.get(`${API_BASE_URL}/reports/admin-monthly`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      setPdfBlob(response.data);
+      setShowGeneratingModal(false);
+      setShowDownloadModal(true);
+    } catch (e) {
+      console.error('Admin report generation failed', e);
+      setShowGeneratingModal(false);
+    }
+  };
+
   if (loading) return (
     <div className="bg-white p-6 rounded-xl shadow-lg">
-      <h1 className="text-2xl font-bold text-gray-800 mb-4">Committee Analytics</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-4">Overall Analytics</h1>
       <div className="flex items-center justify-center py-12 text-gray-500">Loading analytics...</div>
     </div>
   );
 
   if (error) return (
     <div className="bg-white p-6 rounded-xl shadow-lg">
-      <h1 className="text-2xl font-bold text-gray-800 mb-4">Committee Analytics</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-4">Overall Analytics</h1>
       <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-red-800">{error}</div>
     </div>
   );
@@ -1160,8 +1238,8 @@ const AnalyticsPage = () => {
     <div className="bg-white p-6 rounded-xl shadow-lg">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Committee Analytics</h1>
-          <p className="mt-2 text-gray-600">A visual overview of complaint trends, committee performance, and system statistics.</p>
+          <h1 className="text-2xl font-bold text-gray-800">Overall Analytics</h1>
+          <p className="mt-2 text-gray-600">A visual overview of complaint trends, statistics and committee performance.</p>
         </div>
         <div>
           <button onClick={fetchAnalytics} className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm hover:bg-gray-50">Refresh</button>
@@ -1191,6 +1269,114 @@ const AnalyticsPage = () => {
           <p className="text-3xl font-bold text-purple-700 mt-2">{topStats.pending}</p>
         </div>
       </div>
+
+      {/* Overall Portal Analytics Graphs */}
+      {overallCategoryCounts.length > 0 && (
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Overall Category Breakdown</h3>
+            <div style={{ width: '100%', height: 330 }}>
+              <ResponsiveContainer>
+                {/* Custom shape overlays resolved over total */}
+                <BarChart data={overallCategoryCounts}>
+                  <XAxis dataKey="category" tick={{ fontSize: 10 }} angle={-90} textAnchor="end" height={100} />
+                  <YAxis />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-white p-2 border border-gray-300 rounded shadow-lg text-sm">
+                            <p className="font-semibold">{data.category}</p>
+                            <p className="text-blue-600">Total: {data.total}</p>
+                            <p className="text-green-600">Resolved: {data.resolved}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar
+                    dataKey="total"
+                    shape={(props) => {
+                      const { x, y, width, height, payload } = props;
+                      const total = payload?.total || 0;
+                      const resolved = payload?.resolved || 0;
+                      const resolvedHeight = total > 0 ? height * (resolved / total) : 0;
+                      return (
+                        <g>
+                          {/* Assigned/Total (blue) */}
+                          <rect x={x} y={y} width={width} height={height} fill="#4F46E5" />
+                          {/* Resolved overlay (green) */}
+                          <rect x={x} y={y + (height - resolvedHeight)} width={width} height={resolvedHeight} fill="#10B981" />
+                        </g>
+                      );
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
+              <div className="flex items-center gap-2"><span style={{ width:12, height:12, background:'#4F46E5', borderRadius:2 }} /> Assigned</div>
+              <div className="flex items-center gap-2"><span style={{ width:12, height:12, background:'#10B981', borderRadius:2 }} /> Resolved</div>
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Overall Priority Breakdown</h3>
+            <div className="flex items-center gap-4">
+              <div style={{ width: '100%', height: 330 }} className="flex-1">
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'High', value: overallPriorityCounts.High },
+                        { name: 'Medium', value: overallPriorityCounts.Medium },
+                        { name: 'Low', value: overallPriorityCounts.Low },
+                      ]}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={120}
+                      innerRadius={60}
+                    >
+                      <Cell fill="#DC2626" />
+                      <Cell fill="#F59E0B" />
+                      <Cell fill="#10B981" />
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-40">
+                {[{label:'High',color:'#DC2626',value:overallPriorityCounts.High},{label:'Medium',color:'#F59E0B',value:overallPriorityCounts.Medium},{label:'Low',color:'#10B981',value:overallPriorityCounts.Low}]
+                  .filter(i=>i.value>0)
+                  .map(i => (
+                    <div key={i.label} className="flex items-center gap-2">
+                      <span style={{ width:12, height:12, background:i.color, borderRadius:4 }} />
+                      <span className="text-sm text-gray-700">{i.label} :</span>
+                      <span className="ml-auto font-bold">{i.value}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow md:col-span-2">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Overall Last 30 Days Trend</h3>
+            <div style={{ width: '100%', height: 260 }}>
+              <ResponsiveContainer>
+                <LineChart data={overallDailyCounts30Days} margin={{ top:5, right:20, left:0, bottom:5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize:11 }} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="count" stroke="#4F46E5" dot={{ r:2 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+
+      
 
       <div className="mt-10">
         <h2 className="font-semibold text-lg text-gray-800 mb-3">Committee-wise Analytics</h2>
@@ -1233,6 +1419,44 @@ const AnalyticsPage = () => {
           </table>
         </div>
       </div>
+
+      {/* Generate Report Button */}
+      <div className="mt-10 flex justify-center">
+        <button onClick={handleGenerateReport} className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">
+          Generate Report
+        </button>
+      </div>
+
+      {showGeneratingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl text-center w-80">
+            <div className="animate-spin h-8 w-8 mx-auto mb-3 border-4 border-blue-600 border-t-transparent rounded-full" />
+            <p className="mt-2 text-gray-700 font-medium">Generating report...</p>
+          </div>
+        </div>
+      )}
+      {showDownloadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-80 text-center">
+            <h2 className="text-xl font-semibold text-gray-900">Report Generated</h2>
+            <p className="mt-2 text-gray-600">Your PDF report is ready.</p>
+            <button
+              onClick={() => {
+                const url = window.URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Admin_Report.pdf';
+                a.click();
+                window.URL.revokeObjectURL(url);
+              }}
+              className="mt-5 w-full py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+            >
+              Download Report
+            </button>
+            <button onClick={() => setShowDownloadModal(false)} className="mt-3 block w-full text-gray-600 hover:text-gray-800 text-sm font-medium">Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1245,6 +1469,7 @@ const AdminCommitteeAnalytics = () => {
   const [error, setError] = useState("");
   const [metrics, setMetrics] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [complaintsList, setComplaintsList] = useState([]);
 
   // read committee type from query param `ct`
   let committeeType = null;
@@ -1290,6 +1515,7 @@ const AdminCommitteeAnalytics = () => {
 
       setAnalyticsData({
         subcategoryCounts: subArr,
+        subcategoryResolvedCounts: data.subcategoryResolvedCounts || {},
         priorityCounts: data.priorityCounts || { High: 0, Medium: 0, Low: 0 },
         statusCounts: data.statusCounts || { pending: 0, 'in-progress': 0, resolved: 0 },
         dailyCounts30Days: data.dailyCounts30Days || [],
@@ -1302,9 +1528,24 @@ const AdminCommitteeAnalytics = () => {
     }
   };
 
+  const fetchComplaintsList = async () => {
+    try {
+      const token = localStorage.getItem('ccms_token');
+      if (!token) return;
+      const { data } = await axios.get(`${API_BASE_URL}/complaints/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setComplaintsList(data.complaints || []);
+    } catch (e) {
+      console.warn('Failed to fetch complaints list for admin analytics:', e?.response?.data || e.message || e);
+      setComplaintsList([]);
+    }
+  };
+
   useEffect(() => {
     if (!committeeType) return;
     fetchMetrics();
+    fetchComplaintsList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [committeeType]);
 
@@ -1319,6 +1560,29 @@ const AdminCommitteeAnalytics = () => {
 
   const formatDays = (d) => (d == null ? "—" : `${Number(d).toFixed(1)} days`);
   const formatPct = (p) => (p == null ? "—" : `${Number(p).toFixed(0)}%`);
+
+  // Compute resolved counts per category from full complaints list
+  const resolvedByCategory = React.useMemo(() => {
+    const m = {};
+    (complaintsList || []).forEach((c) => {
+      const cat = (c.category || '').trim();
+      if (!cat) return;
+      if (c.status === 'resolved') {
+        m[cat] = (m[cat] || 0) + 1;
+      }
+    });
+    return m;
+  }, [complaintsList]);
+
+  const categoryOverlayData = React.useMemo(() => {
+    const resolvedMap = analyticsData?.subcategoryResolvedCounts || {};
+    const arr = (analyticsData?.subcategoryCounts || []).map((item) => ({
+      category: item.category,
+      total: item.count,
+      resolved: resolvedMap[item.category] || 0,
+    }));
+    return arr;
+  }, [analyticsData]);
 
   if (loading) return (
     <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -1380,36 +1644,62 @@ const AdminCommitteeAnalytics = () => {
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Category Breakdown</h3>
-            <div style={{ width: '100%', height: 220 }}>
+            <div style={{ width: '100%', height: 330 }}>
               <ResponsiveContainer>
-                <BarChart data={(analyticsData.subcategoryCounts || []).filter(d => d.count > 0)}>
+                <BarChart data={categoryOverlayData.filter(d => d.total > 0)}>
                   <XAxis
                     dataKey="category"
                     tick={{ fontSize: 10 }}
+
+                    angle={-90}
+                    textAnchor="end"
+                    height={100}
                   />
-                <YAxis />
-                <Tooltip />
-                  <Bar dataKey="count">
-                    {(analyticsData.subcategoryCounts || [])
-                    .filter(d => d.count > 0)
-                    .map((entry, idx) => (
-                      <Cell
-                        key={`cell-${idx}`}
-                        onClick={() => handleChartClick('category', entry.category)}
-                        fill="#4F46E5"
-                        cursor="pointer"
-                      />
-                    ))}
-                  </Bar>
+                  <YAxis />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-white p-2 border border-gray-300 rounded shadow-lg text-sm">
+                            <p className="font-semibold">{data.category}</p>
+                            <p className="text-blue-600">Total: {data.total}</p>
+                            <p className="text-green-600">Resolved: {data.resolved}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar
+                    dataKey="total"
+                    onClick={(data) => data && handleChartClick('category', data.payload?.category)}
+                    shape={(props) => {
+                      const { x, y, width, height, payload } = props;
+                      const total = payload?.total || 0;
+                      const resolved = payload?.resolved || 0;
+                      const resolvedHeight = total > 0 ? height * (resolved / total) : 0;
+                      return (
+                        <g>
+                          <rect x={x} y={y} width={width} height={height} fill="#4F46E5" />
+                          <rect x={x} y={y + (height - resolvedHeight)} width={width} height={resolvedHeight} fill="#10B981" />
+                        </g>
+                      );
+                    }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+            <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
+              <div className="flex items-center gap-2"><span style={{ width:12, height:12, background:'#4F46E5', borderRadius:2 }} /> Assigned</div>
+              <div className="flex items-center gap-2"><span style={{ width:12, height:12, background:'#10B981', borderRadius:2 }} /> Resolved</div>
             </div>
           </div>
 
           <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Priority Breakdown</h3>
             <div className="flex items-center gap-4">
-              <div style={{ width: '100%', height: 220 }} className="flex-1">
+              <div style={{ width: '100%', height: 330 }} className="flex-1">
                 <ResponsiveContainer>
                   <PieChart>
                     <Pie
@@ -1420,8 +1710,8 @@ const AdminCommitteeAnalytics = () => {
                       ]}
                       dataKey="value"
                       nameKey="name"
-                      outerRadius={80}
-                      innerRadius={40}
+                      outerRadius={120}
+                      innerRadius={60}
                       onClick={(e) => e && handleChartClick('priority', e.name)}
                       cursor="pointer"
                     >

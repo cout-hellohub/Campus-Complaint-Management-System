@@ -59,7 +59,7 @@ export const sendOTPEmail = async (email, otp) => {
             <li>Do not share this OTP with anyone</li>
             <li>If you didn't request this, please ignore this email</li>
           </ul>
-          <p>Best regards,<br>Campus Complaint Management System</p>
+          <p>Best regards,<br>Campus Complaint Resolve</p>
         </div>
       `,
     };

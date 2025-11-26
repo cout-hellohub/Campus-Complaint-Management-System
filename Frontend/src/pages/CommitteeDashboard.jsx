@@ -1014,6 +1014,7 @@ const AnalyticsDashboardPage = () => {
 
       setAnalyticsData({
         subcategoryCounts: subcategoryCountsArr,
+        subcategoryResolvedCounts: data.subcategoryResolvedCounts || {},
         priorityCounts: data.priorityCounts || { High: 0, Medium: 0, Low: 0 },
         // statusCounts kept for compatibility though status chart was removed
         statusCounts: data.statusCounts || { pending: 0, 'in-progress': 0, resolved: 0 },
@@ -1025,6 +1026,29 @@ const AnalyticsDashboardPage = () => {
       setLoading(false);
     }
   };
+
+  // Compute resolved counts per category from assigned complaints list
+  const resolvedByCategory = useMemo(() => {
+    const m = {};
+    (complaintsList || []).forEach((c) => {
+      const cat = (c.category || '').trim();
+      if (!cat) return;
+      if (c.status === 'resolved') {
+        m[cat] = (m[cat] || 0) + 1;
+      }
+    });
+    return m;
+  }, [complaintsList]);
+
+  const categoryOverlayData = useMemo(() => {
+    const resolvedMap = analyticsData?.subcategoryResolvedCounts || {};
+    const arr = (analyticsData?.subcategoryCounts || []).map((item) => ({
+      category: item.category,
+      total: item.count,
+      resolved: resolvedMap[item.category] || 0,
+    }));
+    return arr;
+  }, [analyticsData]);
 
   const handleChartClick = (type, value) => {
     try {
@@ -1224,26 +1248,55 @@ const AnalyticsDashboardPage = () => {
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Category Breakdown</h3>
-            <div style={{ width: '100%', height: 220 }}>
+            <div style={{ width: '100%', height: 330 }}>
               <ResponsiveContainer>
-                <BarChart data={(analyticsData.subcategoryCounts || []).filter(d => d.count > 0)}>
-                  <XAxis dataKey="category" />
+                <BarChart data={categoryOverlayData.filter(d => d.total > 0)}>
+                  <XAxis dataKey="category" angle={-90} textAnchor="end" height={100} tick={{ fontSize: 10 }} />
                   <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count">
-                    {(analyticsData.subcategoryCounts || []).filter(d => d.count > 0).map((entry, idx) => (
-                      <Cell key={`cell-${idx}`} onClick={() => handleChartClick('category', entry.category)} fill={"#4F46E5"} cursor="pointer" />
-                    ))}
-                  </Bar>
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-white p-2 border border-gray-300 rounded shadow-lg text-sm">
+                            <p className="font-semibold">{data.category}</p>
+                            <p className="text-blue-600">Total: {data.total}</p>
+                            <p className="text-green-600">Resolved: {data.resolved}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar
+                    dataKey="total"
+                    onClick={(data) => data && handleChartClick('category', data.payload?.category)}
+                    shape={(props) => {
+                      const { x, y, width, height, payload } = props;
+                      const total = payload?.total || 0;
+                      const resolved = payload?.resolved || 0;
+                      const resolvedHeight = total > 0 ? height * (resolved / total) : 0;
+                      return (
+                        <g>
+                          <rect x={x} y={y} width={width} height={height} fill="#4F46E5" />
+                          <rect x={x} y={y + (height - resolvedHeight)} width={width} height={resolvedHeight} fill="#10B981" />
+                        </g>
+                      );
+                    }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+            <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
+              <div className="flex items-center gap-2"><span style={{ width:12, height:12, background:'#4F46E5', borderRadius:2 }} /> Assigned</div>
+              <div className="flex items-center gap-2"><span style={{ width:12, height:12, background:'#10B981', borderRadius:2 }} /> Resolved</div>
             </div>
           </div>
 
           <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Priority Breakdown</h3>
             <div className="flex items-center gap-4">
-              <div style={{ width: '100%', height: 220 }} className="flex-1">
+              <div style={{ width: '100%', height: 330 }} className="flex-1">
                 <ResponsiveContainer>
                   <PieChart>
                     <Pie
@@ -1254,8 +1307,8 @@ const AnalyticsDashboardPage = () => {
                       ]}
                       dataKey="value"
                       nameKey="name"
-                      outerRadius={80}
-                      innerRadius={40}
+                      outerRadius={120}
+                      innerRadius={60}
                       // keep click behavior but remove hover tooltip
                       onClick={(e) => e && handleChartClick('priority', e.name)}
                       cursor="pointer"

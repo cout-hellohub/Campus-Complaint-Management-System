@@ -596,21 +596,26 @@ export const getCommitteeAnalytics = async (req, res) => {
     }
 
     // Build dynamic subcategoryCounts by classifying each complaint (title+description)
-    const complaintsForSub = await Complaint.find(baseMatch).select('title description').lean();
+    const complaintsForSub = await Complaint.find(baseMatch).select('title description status statusHistory updatedAt').lean();
     const subCounts = {};
+    const subResolvedCounts = {};
     if (complaintsForSub && complaintsForSub.length) {
-      // Classify in parallel but throttle (simple Promise.all here)
       const classificationPromises = complaintsForSub.map((c) =>
         classifySubcategory(c.title || '', c.description || '', category)
+          .then((label) => ({ label: label || 'Other', complaint: c }))
           .catch((e) => {
             console.warn('Subcategory classification failed for complaint:', e?.message || e);
-            return 'Other';
+            return { label: 'Other', complaint: c };
           })
       );
       const results = await Promise.all(classificationPromises);
-      for (const sc of results) {
-        const key = sc || 'Other';
-        subCounts[key] = (subCounts[key] || 0) + 1;
+      for (const { label, complaint } of results) {
+        subCounts[label] = (subCounts[label] || 0) + 1;
+        // Consider resolved if status is 'resolved' or statusHistory contains resolved
+        const isResolved = complaint?.status === 'resolved' || (Array.isArray(complaint?.statusHistory) && complaint.statusHistory.some((s) => s && s.status === 'resolved'));
+        if (isResolved) {
+          subResolvedCounts[label] = (subResolvedCounts[label] || 0) + 1;
+        }
       }
     }
 
@@ -634,6 +639,8 @@ export const getCommitteeAnalytics = async (req, res) => {
       dailyCounts30Days,
       // Dynamic subcategory counts (key = subcategory label, value = count)
       subcategoryCounts: subCounts,
+      // Resolved counts per subcategory (for overlay bars)
+      subcategoryResolvedCounts: subResolvedCounts,
       // KPI values (kept for frontend KPI cards)
       total,
       resolved,

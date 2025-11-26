@@ -16,7 +16,7 @@ export default function Login() {
       style={{ backgroundImage: `url(${campusBg})` }}
     >
       {/* Transparent background overlay */}
-      <div className="absolute inset-0 bg-black/35"></div>
+      <div className="absolute inset-0 bg-black/45"></div>
 
       {/* Login Card */}
       <div className="relative bg-white/90 backdrop-blur-sm shadow-2xl rounded-xl sm:rounded-2xl px-6 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12 w-full max-w-[95%] xs:max-w-md flex flex-col items-center text-center">

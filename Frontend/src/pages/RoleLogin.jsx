@@ -61,12 +61,12 @@ const RoleLogin = () => {
       style={{ backgroundImage: `url(${campusBg})` }}
     >
       {/* transparent background overlay */}
-      <div className="absolute inset-0 bg-white/60"></div>
+      <div className="absolute inset-0 bg-black/60"></div>
 
       {/* Back Button */}
       <button
         onClick={() => navigate("/login")}
-        className="absolute top-4 sm:top-6 left-4 sm:left-6 flex items-center gap-2 text-blue-700 text-sm sm:text-base font-medium hover:underline z-10 touch-manipulation"
+        className="absolute top-4 sm:top-6 left-4 sm:left-6 flex items-center gap-2 text-white text-sm sm:text-base font-medium hover:underline z-10 touch-manipulation"
       >
         ← Back
       </button>
