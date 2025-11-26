@@ -112,7 +112,7 @@ const DashboardNavbar = ({
                   {unreadCount > 0 && onMarkAllRead && (
                     <button
                       onClick={onMarkAllRead}
-                      className="text-xs sm:text-base text-blue-600 hover:text-blue-800 active:text-blue-900 font-medium touch-manipulation whitespace-nowrap"
+                      className="text-[11px] sm:text-xs text-blue-600 hover:text-blue-800 active:text-blue-900 font-medium touch-manipulation whitespace-nowrap"
                       data-testid={markAllReadButtonTestId}
                     >
                       Mark all as read

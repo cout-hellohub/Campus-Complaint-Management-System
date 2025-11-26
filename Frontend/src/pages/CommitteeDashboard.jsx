@@ -1454,7 +1454,10 @@ const CommitteeDashboardHome = () => {
     const storedUser = typeof window !== "undefined" ? localStorage.getItem("ccms_user") : null;
     const parsedUser = storedUser ? JSON.parse(storedUser) : null;
     committeeDisplayName =
-      parsedUser?.committeeType || parsedUser?.committee || committeeDisplayName;
+      parsedUser?.name ||
+      parsedUser?.committeeType ||
+      parsedUser?.committee ||
+      committeeDisplayName
   } catch (e) {}
 
   useEffect(() => {
@@ -1697,12 +1700,20 @@ export default function CommitteeDashboard() {
   } catch (e) {
     currentUser = null;
   }
-  const profileInitial = currentUser?.committeeType
-    ? currentUser.committeeType.charAt(0).toUpperCase()
-    : currentUser?.name
-    ? currentUser.name.charAt(0).toUpperCase()
-    : 'C';
-  const profileName = currentUser?.committeeType ?? currentUser?.name ?? 'Committee Name';
+  const profileLabel =
+    currentUser?.name ||
+    currentUser?.committeeType ||
+    currentUser?.committee ||
+    "Committee Name";
+  const profileInitial = profileLabel ? profileLabel.charAt(0).toUpperCase() : "C";
+  const profileName = profileLabel;
+
+  const handleLogout = () => {
+    localStorage.removeItem("ccms_token");
+    localStorage.removeItem("ccms_user");
+    localStorage.removeItem("role");
+    navigate("/login", { replace: true });
+  };
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -1833,6 +1844,33 @@ export default function CommitteeDashboard() {
     } catch (err) {
       console.error("Clear all notifications error:", err);
     }
+  };
+
+  const handleNotificationClick = (notification) => {
+    if (!notification) return;
+    if (!notification.isRead) {
+      markAsRead(notification._id);
+    }
+    const complaintId = notification?.complaint?._id || notification?.complaint;
+    if (complaintId) {
+      navigate(`/committee-dashboard/assigned-complaints?complaintId=${complaintId}`);
+    }
+    setNotificationDropdownOpen(false);
+  };
+
+  const handleNotificationDelete = (notification) => {
+    if (!notification) return;
+    deleteNotification(notification._id);
+  };
+
+  const handleBellClick = () => {
+    setNotificationDropdownOpen((prev) => {
+      const next = !prev;
+      if (!prev) {
+        fetchNotifications();
+      }
+      return next;
+    });
   };
 
   return (
