@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   FaBell,
@@ -6,6 +7,10 @@ import {
   FaTasks,
   FaChartBar,
   FaSpinner,
+  FaFileAlt,
+  FaEye,
+  FaCheckCircle,
+  FaTimesCircle,
 } from "react-icons/fa";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
@@ -36,31 +41,46 @@ import ComplaintsTable from "../components/ComplaintsTable";
 // Shared UI helpers used by multiple sub-pages
 const getBorderColor = (color) => {
   switch (color) {
-    case "blue": return "border-blue-500";
-    case "green": return "border-green-500";
-    case "yellow": return "border-yellow-500";
-    case "red": return "border-red-500";
-    default: return "border-gray-500";
+    case "blue":
+      return "border-blue-500";
+    case "green":
+      return "border-green-500";
+    case "yellow":
+      return "border-yellow-500";
+    case "red":
+      return "border-red-500";
+    default:
+      return "border-gray-500";
   }
 };
 
 const getBackgroundColor = (color) => {
   switch (color) {
-    case "blue": return "bg-blue-50";
-    case "green": return "bg-green-50";
-    case "yellow": return "bg-yellow-50";
-    case "red": return "bg-red-50";
-    default: return "bg-gray-50";
+    case "blue":
+      return "bg-blue-50";
+    case "green":
+      return "bg-green-50";
+    case "yellow":
+      return "bg-yellow-50";
+    case "red":
+      return "bg-red-50";
+    default:
+      return "bg-gray-50";
   }
 };
 
 const getLabelColor = (color) => {
   switch (color) {
-    case "blue": return "text-blue-700";
-    case "green": return "text-green-700";
-    case "yellow": return "text-yellow-700";
-    case "red": return "text-red-700";
-    default: return "text-gray-700";
+    case "blue":
+      return "text-blue-700";
+    case "green":
+      return "text-green-700";
+    case "yellow":
+      return "text-yellow-700";
+    case "red":
+      return "text-red-700";
+    default:
+      return "text-gray-700";
   }
 };
 
@@ -101,7 +121,7 @@ const committeeNavbarTestIds = {
   menuButton: "committee-sidebar-menu-button",
 };
 
-// --- 2. Pages for Committee Features ---
+// --- 2. Placeholder Pages for Committee Features ---
 
 // C2: View & manage assigned complaints
 const AssignedComplaintsPage = () => {
@@ -125,11 +145,7 @@ const AssignedComplaintsPage = () => {
   });
   const [tempFilters, setTempFilters] = useState(filters);
   const [searchTerm, setSearchTerm] = useState(""); 
-  
-  // --- PAGINATION STATE ---
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 30;
-  // ------------------------
+  // --- END STATE ---
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -140,6 +156,7 @@ const AssignedComplaintsPage = () => {
   const targetComplaintIdRef = useRef(null);
 
   useEffect(() => {
+    // capture complaintId query param if present so we can open it after fetch
     try {
       const params = new URLSearchParams(location.search);
       const cid = params.get('complaintId');
@@ -150,12 +167,6 @@ const AssignedComplaintsPage = () => {
 
     fetchAssignedComplaints();
   }, [location.search]);
-
-  // --- PAGINATION RESET ---
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, filters, sortConfig]);
-  // ------------------------
 
   const fetchAssignedComplaints = async () => {
     try {
@@ -180,7 +191,7 @@ const AssignedComplaintsPage = () => {
       );
 
       setComplaints(data.complaints || []);
-      
+      // If a complaintId was passed in the URL, open it once complaints are loaded
       try {
         const cid = targetComplaintIdRef.current;
         if (cid) {
@@ -188,6 +199,7 @@ const AssignedComplaintsPage = () => {
           if (found) {
             setSelectedComplaint(found);
             setShowViewModal(true);
+            // clear the param from URL
             navigate('/committee-dashboard/assigned-complaints', { replace: true });
           }
         }
@@ -229,9 +241,10 @@ const AssignedComplaintsPage = () => {
         }
       );
 
-    
+      
       await fetchAssignedComplaints();
       
+    
       setShowStatusModal(false);
       setSelectedComplaint(null);
       setNewStatus("");
@@ -257,6 +270,7 @@ const AssignedComplaintsPage = () => {
     setShowStatusModal(true);
   };
 
+
   const openViewModal = (complaint) => {
     setSelectedComplaint(complaint);
     setShowViewModal(true);
@@ -268,6 +282,12 @@ const AssignedComplaintsPage = () => {
     return `CC${id.slice(-6).toUpperCase()}`;
   };
 
+  const getUserName = (userId) => {
+    if (!userId) return "Unknown";
+ 
+    return userId.name || "Unknown";
+  };
+  
   const getStatusBadge = (status) => {
     const statusStyles = {
       pending: "bg-yellow-50 text-yellow-700",
@@ -289,6 +309,41 @@ const AssignedComplaintsPage = () => {
         {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
       </span>
     );
+  };
+
+  const getPriorityBadge = (priority) => {
+    const priorityStyles = {
+      High: "bg-red-100 text-red-800",
+      Medium: "bg-yellow-100 text-yellow-800",
+      Low: "bg-green-100 text-green-800",
+    };
+
+    if (!priority) return (
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800`}>N/A</span>
+    );
+
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-semibold ${
+          priorityStyles[priority] || "bg-gray-100 text-gray-800"
+        }`}
+      >
+        {priority}
+      </span>
+    );
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const getSortLabel = () => {
@@ -317,6 +372,7 @@ const AssignedComplaintsPage = () => {
   const sortedAndFilteredComplaints = useMemo(() => {
     let processableComplaints = [...complaints];
 
+
     if (searchTerm) {
       const lowerCaseSearch = searchTerm.toLowerCase().trim();
       const searchWords = lowerCaseSearch.split(/\s+/).filter(word => word.length > 0);
@@ -324,11 +380,13 @@ const AssignedComplaintsPage = () => {
       processableComplaints = processableComplaints.filter(c => {
         if (!c) return false;
         
+        
         const title = (c.title || "").toLowerCase();
         const category = (c.category || "").toLowerCase();
         const complaintId = getComplaintId(c._id).toLowerCase();
         const userName = (c.userId?.name || "").toLowerCase();
         
+ 
         const directMatch = 
           title.includes(lowerCaseSearch) ||
           category.includes(lowerCaseSearch) ||
@@ -336,6 +394,7 @@ const AssignedComplaintsPage = () => {
 
         if (directMatch) return true;
         
+  
         if (searchWords.length > 0) {
             const wordMatch = searchWords.every(word => userName.includes(word));
             if (wordMatch) return true;
@@ -352,6 +411,7 @@ const AssignedComplaintsPage = () => {
       processableComplaints = processableComplaints.filter(c => c && filters.priority.includes(c.priority));
     }
 
+  
     if (sortConfig && sortConfig.key) {
       processableComplaints.sort((a, b) => {
         if (!a) return sortConfig.direction === "ascending" ? 1 : -1;
@@ -381,13 +441,6 @@ const AssignedComplaintsPage = () => {
 
     return processableComplaints;
   }, [complaints, sortConfig, filters, searchTerm]);
-
-  // --- PAGINATION CALCULATION ---
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = sortedAndFilteredComplaints.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(sortedAndFilteredComplaints.length / itemsPerPage);
-  // ------------------------------
 
   const handleFilterChange = (filterType, value, isChecked) => {
     setTempFilters(prev => {
@@ -458,7 +511,7 @@ const AssignedComplaintsPage = () => {
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Assigned Complaints</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedAndFilteredComplaints.length)} of {sortedAndFilteredComplaints.length}
+              Showing: {sortedAndFilteredComplaints.length} complaints (Filtered from {complaints.length})
             </p>
           </div>
           
@@ -534,7 +587,7 @@ const AssignedComplaintsPage = () => {
         </div>
 
       <ComplaintsTable
-        complaints={currentItems}
+        complaints={sortedAndFilteredComplaints}
         config={{
           showId: true,
           showTitle: true,
@@ -550,69 +603,6 @@ const AssignedComplaintsPage = () => {
           emptyMessage: "No complaints found matching current criteria.",
         }}
       />
-
-      {/* --- PAGINATION CONTROLS (Google Style) --- */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center mt-6 space-x-2">
-          {/* Previous Button */}
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className={`px-3 py-1 rounded text-sm font-medium ${
-              currentPage === 1
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-blue-600 hover:bg-blue-50 hover:text-blue-800'
-            }`}
-          >
-            Previous
-          </button>
-
-          {/* Page Numbers */}
-          <div className="flex space-x-1">
-            {[...Array(totalPages)].map((_, index) => {
-              const pageNumber = index + 1;
-              // Logic to show limited page numbers if there are too many pages
-              if (
-                totalPages > 10 &&
-                pageNumber !== 1 &&
-                pageNumber !== totalPages &&
-                Math.abs(currentPage - pageNumber) > 2
-              ) {
-                  if (Math.abs(currentPage - pageNumber) === 3) return <span key={pageNumber} className="px-2 text-gray-400">...</span>;
-                  return null;
-              }
-
-              return (
-                <button
-                  key={pageNumber}
-                  onClick={() => setCurrentPage(pageNumber)}
-                  className={`px-3 py-1 rounded text-sm font-medium ${
-                    currentPage === pageNumber
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {pageNumber}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Next Button */}
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className={`px-3 py-1 rounded text-sm font-medium ${
-              currentPage === totalPages
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-blue-600 hover:bg-blue-50 hover:text-blue-800'
-            }`}
-          >
-            Next
-          </button>
-        </div>
-      )}
-      {/* ------------------------------------------- */}
 
       {showStatusModal && selectedComplaint && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1014,7 +1004,6 @@ const AnalyticsDashboardPage = () => {
 
       setAnalyticsData({
         subcategoryCounts: subcategoryCountsArr,
-        subcategoryResolvedCounts: data.subcategoryResolvedCounts || {},
         priorityCounts: data.priorityCounts || { High: 0, Medium: 0, Low: 0 },
         // statusCounts kept for compatibility though status chart was removed
         statusCounts: data.statusCounts || { pending: 0, 'in-progress': 0, resolved: 0 },
@@ -1026,29 +1015,6 @@ const AnalyticsDashboardPage = () => {
       setLoading(false);
     }
   };
-
-  // Compute resolved counts per category from assigned complaints list
-  const resolvedByCategory = useMemo(() => {
-    const m = {};
-    (complaintsList || []).forEach((c) => {
-      const cat = (c.category || '').trim();
-      if (!cat) return;
-      if (c.status === 'resolved') {
-        m[cat] = (m[cat] || 0) + 1;
-      }
-    });
-    return m;
-  }, [complaintsList]);
-
-  const categoryOverlayData = useMemo(() => {
-    const resolvedMap = analyticsData?.subcategoryResolvedCounts || {};
-    const arr = (analyticsData?.subcategoryCounts || []).map((item) => ({
-      category: item.category,
-      total: item.count,
-      resolved: resolvedMap[item.category] || 0,
-    }));
-    return arr;
-  }, [analyticsData]);
 
   const handleChartClick = (type, value) => {
     try {
@@ -1248,55 +1214,26 @@ const AnalyticsDashboardPage = () => {
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Category Breakdown</h3>
-            <div style={{ width: '100%', height: 330 }}>
+            <div style={{ width: '100%', height: 220 }}>
               <ResponsiveContainer>
-                <BarChart data={categoryOverlayData.filter(d => d.total > 0)}>
-                  <XAxis dataKey="category" angle={-90} textAnchor="end" height={100} tick={{ fontSize: 10 }} />
+                <BarChart data={(analyticsData.subcategoryCounts || []).filter(d => d.count > 0)}>
+                  <XAxis dataKey="category" />
                   <YAxis />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="bg-white p-2 border border-gray-300 rounded shadow-lg text-sm">
-                            <p className="font-semibold">{data.category}</p>
-                            <p className="text-blue-600">Total: {data.total}</p>
-                            <p className="text-green-600">Resolved: {data.resolved}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar
-                    dataKey="total"
-                    onClick={(data) => data && handleChartClick('category', data.payload?.category)}
-                    shape={(props) => {
-                      const { x, y, width, height, payload } = props;
-                      const total = payload?.total || 0;
-                      const resolved = payload?.resolved || 0;
-                      const resolvedHeight = total > 0 ? height * (resolved / total) : 0;
-                      return (
-                        <g>
-                          <rect x={x} y={y} width={width} height={height} fill="#4F46E5" />
-                          <rect x={x} y={y + (height - resolvedHeight)} width={width} height={resolvedHeight} fill="#10B981" />
-                        </g>
-                      );
-                    }}
-                  />
+                  <Tooltip />
+                  <Bar dataKey="count">
+                    {(analyticsData.subcategoryCounts || []).filter(d => d.count > 0).map((entry, idx) => (
+                      <Cell key={`cell-${idx}`} onClick={() => handleChartClick('category', entry.category)} fill={"#4F46E5"} cursor="pointer" />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-            <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
-              <div className="flex items-center gap-2"><span style={{ width:12, height:12, background:'#4F46E5', borderRadius:2 }} /> Assigned</div>
-              <div className="flex items-center gap-2"><span style={{ width:12, height:12, background:'#10B981', borderRadius:2 }} /> Resolved</div>
             </div>
           </div>
 
           <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Priority Breakdown</h3>
             <div className="flex items-center gap-4">
-              <div style={{ width: '100%', height: 330 }} className="flex-1">
+              <div style={{ width: '100%', height: 220 }} className="flex-1">
                 <ResponsiveContainer>
                   <PieChart>
                     <Pie
@@ -1307,8 +1244,8 @@ const AnalyticsDashboardPage = () => {
                       ]}
                       dataKey="value"
                       nameKey="name"
-                      outerRadius={120}
-                      innerRadius={60}
+                      outerRadius={80}
+                      innerRadius={40}
                       // keep click behavior but remove hover tooltip
                       onClick={(e) => e && handleChartClick('priority', e.name)}
                       cursor="pointer"
@@ -1449,13 +1386,20 @@ const CommitteeDashboardHome = () => {
   const [recentComplaints, setRecentComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  let committeeDisplayName = "Committee Dashboard";
+
+  // --- NEW: Retrieve Committee Name ---
+  const userStr = localStorage.getItem("ccms_user");
+  let committeeName = "Committee";
   try {
-    const storedUser = typeof window !== "undefined" ? localStorage.getItem("ccms_user") : null;
-    const parsedUser = storedUser ? JSON.parse(storedUser) : null;
-    committeeDisplayName =
-      parsedUser?.committeeType || parsedUser?.committee || committeeDisplayName;
-  } catch (e) {}
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // specific logic to find the best display name
+      committeeName = user.committeeType || user.name || "Committee";
+    }
+  } catch (e) {
+    // Fallback to default if parsing fails
+  }
+  // ------------------------------------
 
   useEffect(() => {
     fetchDashboardData();
@@ -1545,7 +1489,8 @@ const CommitteeDashboardHome = () => {
   if (loading) {
     return (
       <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">{committeeDisplayName}</h1>
+        {/* Updated Title */}
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">{committeeName} Dashboard</h1>
         <div className="flex items-center justify-center py-12">
           <div className="text-gray-500">Loading dashboard data...</div>
         </div>
@@ -1556,7 +1501,8 @@ const CommitteeDashboardHome = () => {
   if (error) {
     return (
       <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">{committeeDisplayName}</h1>
+        {/* Updated Title */}
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">{committeeName} Dashboard</h1>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
           <button
@@ -1592,12 +1538,13 @@ const CommitteeDashboardHome = () => {
       color: "green",
     },
   ];
-  
+   
 
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-800">{committeeDisplayName}</h1>
+        {/* Updated Title */}
+        <h1 className="text-3xl font-bold text-gray-800">{committeeName} Dashboard</h1>
         <p className="text-gray-600 mt-2">
           {stats.pending} complaint{stats.pending !== 1 ? 's' : ''} awaiting action.
         </p>
@@ -1807,33 +1754,109 @@ export default function CommitteeDashboard() {
     }
   };
 
-  const clearAllNotifications = async () => {
+  const handleNotificationClick = (notification) => {
+    if (!notification) return;
+    if (!notification.isRead) {
+      markAsRead(notification._id);
+    }
+    setNotificationDropdownOpen(false);
     try {
-      const token = localStorage.getItem("ccms_token");
-      if (!token) return;
-
-      const ids = (notifications || []).map((n) => n._id).filter(Boolean);
-      if (ids.length === 0) {
+      const cid = notification?.complaint?._id || notification?.complaint;
+      if (cid) {
+        navigate(`/committee-dashboard/assigned-complaints?complaintId=${cid}`);
         return;
       }
-
-      await Promise.all(
-        ids.map((id) =>
-          axios.delete(`${API_BASE_URL}/notifications/${id}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          })
-        )
-      );
-
-      setNotifications([]);
-      setUnreadCount(0);
     } catch (err) {
-      console.error("Clear all notifications error:", err);
+      // ignore navigation errors
     }
+    navigate("/committee-dashboard/assigned-complaints");
   };
+
+  const handleNotificationDelete = (notification) => {
+    if (!notification) return;
+    deleteNotification(notification._id);
+  };
+
+  const handleBellClick = () => {
+    setNotificationDropdownOpen((prev) => {
+      const next = !prev;
+      if (!prev) {
+        fetchNotifications();
+      }
+      return next;
+    });
+  };
+
+  // Fetch notifications on component mount and set up polling
+  useEffect(() => {
+    fetchNotifications();
+    
+    // Poll for new notifications every 30 seconds
+    const pollInterval = setInterval(fetchNotifications, 30000);
+    
+    return () => clearInterval(pollInterval);
+  }, []);
+
+  const handleLogout = () => {
+    // Clear stored auth data like the student dashboard does
+    localStorage.removeItem("ccms_token");
+    localStorage.removeItem("ccms_user");
+    // Use replace to prevent navigating back into a protected route
+    navigate("/login", { replace: true });
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setNotificationDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef, notificationsRef]);
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        closeSidebar();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      return undefined;
+    }
+
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, [isSidebarOpen]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -1858,7 +1881,6 @@ export default function CommitteeDashboard() {
           loadingNotifications={loadingNotifications}
           onBellClick={handleBellClick}
           onMarkAllRead={markAllAsRead}
-          onClearAllNotifications={clearAllNotifications}
           onNotificationClick={handleNotificationClick}
           onNotificationDelete={handleNotificationDelete}
           notificationDropdownOpen={notificationDropdownOpen}
