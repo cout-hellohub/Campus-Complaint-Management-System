@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
 
+import campusBg from "../assets/campus.jpg";
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -46,14 +47,17 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 overflow-hidden relative px-3 sm:px-4">
+    <div className="relative flex items-center justify-center min-h-screen bg-cover bg-center bg-no-repeat px-3 sm:px-4 overflow-hidden" style={{ backgroundImage: `url(${campusBg})` }}>
+      <div className="absolute inset-0 bg-black/60"></div>
       {/* Back Button */}
       <button
         onClick={() => navigate("/login")}
-        className="absolute top-4 sm:top-6 left-4 sm:left-6 flex items-center gap-1 sm:gap-2 text-blue-700 text-sm sm:text-base font-medium hover:underline touch-manipulation"
+        className="absolute top-4 sm:top-6 left-4 sm:left-6 flex items-center gap-1 sm:gap-2 text-white text-sm sm:text-base font-medium hover:underline touch-manipulation"
       >
-        ← Back to Login
+        ← Back 
       </button>
+      <div className="flex items-center justify-center min-h-screen bg-transparent overflow-hidden relative px-3 sm:px-4">
+      
 
       <div className="bg-white p-6 sm:p-8 md:p-10 rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-[95%] xs:max-w-md">
         <h1 className="text-2xl sm:text-3xl font-bold text-center text-blue-700 mb-6 sm:mb-8">
@@ -108,9 +112,9 @@ const ForgotPassword = () => {
             Remember your password? Login here
           </button>
         </div>
+        </div>
       </div>
     </div>
   );
 };
-
 export default ForgotPassword;

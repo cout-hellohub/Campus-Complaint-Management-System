@@ -21,7 +21,11 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const app = express();
 
 // Official CORS setup
-const defaultAllowedOrigins = [
+const isProduction = process.env.NODE_ENV === 'production';
+
+// In production, only use environment variables for CORS
+// In development, allow localhost origins
+const defaultAllowedOrigins = isProduction ? [] : [
   "http://localhost:5175", // Vite dev (current port)
   "http://localhost:5174",
   "http://localhost:5173", // React dev server
@@ -48,6 +52,12 @@ if (process.env.FRONTEND_ORIGIN) extraOrigins.push(process.env.FRONTEND_ORIGIN.t
 const allowedOrigins = Array.from(
   new Set([...defaultAllowedOrigins, ...envAllowedOrigins, ...extraOrigins])
 ).filter(Boolean);
+
+// In production, require at least one origin to be configured
+if (isProduction && allowedOrigins.length === 0) {
+  console.warn('⚠️  WARNING: No CORS origins configured for production. Set FRONTEND_URL or CORS_ALLOWED_ORIGINS environment variable.');
+}
+
 
 app.use(
   cors({
@@ -85,6 +95,11 @@ mongoose
 //  Routes
 app.get("/", (req, res) => {
   res.send("Backend running successfully ");
+});
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 app.use("/api/auth", authRoutes);
@@ -145,11 +160,17 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Internal server error" });
 });
 
-//  Start server
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () =>
-  console.log(` Server running at http://localhost:${PORT}`)
-);
+// Export app for Vercel serverless functions
+export default app;
+
+// Start server only if not in Vercel serverless environment
+// Vercel sets VERCEL environment variable
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () =>
+    console.log(` Server running at http://localhost:${PORT}`)
+  );
+}
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {

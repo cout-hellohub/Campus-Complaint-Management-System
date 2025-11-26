@@ -1,11 +1,8 @@
-import React from "react";
-import { useState, useRef, useEffect, useMemo  } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   FaBell,
   FaPlus,
-  FaEye,
-  FaThumbsUp,
   FaTrash,
   FaTimes,
   FaHome,
@@ -146,11 +143,15 @@ const MyComplaintsPage = () => {
   const [filters, setFilters] = useState({
     status: [], 
     committee: [], 
-    priority: [], // ADDED PRIORITY TO FILTERS
+    priority: [], 
   });
   const [tempFilters, setTempFilters] = useState(filters);
   const [searchTerm, setSearchTerm] = useState(""); 
-  // --- END UPDATED STATE ---
+
+  // --- PAGINATION STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
+  // ------------------------
 
   const currentUserId = useMemo(() => {
     try {
@@ -175,11 +176,16 @@ const MyComplaintsPage = () => {
     fetchComplaints();
   }, []);
 
+  // --- PAGINATION RESET ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filters, sortConfig]);
+  // ------------------------
+
   useEffect(() => {
     if (!actionMessage) {
       return;
     }
-
     const timeout = setTimeout(() => setActionMessage(""), 4000);
     return () => clearTimeout(timeout);
   }, [actionMessage]);
@@ -349,6 +355,7 @@ const MyComplaintsPage = () => {
     // 1. Search Filtering
     if (searchTerm) {
       const lowerCaseSearch = searchTerm.toLowerCase().trim();
+      const searchWords = lowerCaseSearch.split(/\s+/).filter(word => word.length > 0);
       
       processableComplaints = processableComplaints.filter(c => {
         if (!c) return false;
@@ -372,11 +379,9 @@ const MyComplaintsPage = () => {
     if (filters.committee.length > 0) {
       processableComplaints = processableComplaints.filter(c => c && filters.committee.includes(c.category));
     }
-    // APPLY PRIORITY FILTER HERE
     if (filters.priority.length > 0) {
       processableComplaints = processableComplaints.filter(c => c && filters.priority.includes(c.priority));
     }
-
 
     // 3. Sorting
     if (sortConfig && sortConfig.key) {
@@ -409,9 +414,14 @@ const MyComplaintsPage = () => {
 
     return processableComplaints;
   }, [complaints, sortConfig, filters, searchTerm]);
-  // --- END DYNAMIC LOGIC ---
 
-  // --- FILTER MODAL HANDLERS ---
+  // --- PAGINATION CALCULATION ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedAndFilteredComplaints.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedAndFilteredComplaints.length / itemsPerPage);
+  // ------------------------------
+
   const handleFilterChange = (filterType, value, isChecked) => {
     setTempFilters(prev => {
       const currentValues = prev[filterType];
@@ -429,59 +439,15 @@ const MyComplaintsPage = () => {
   };
 
   const clearFilters = () => {
-    // Resetting state to include priority filter
     const defaultFilters = { status: [], committee: [], priority: [] }; 
     setFilters(defaultFilters);
     setTempFilters(defaultFilters);
     setShowFilterModal(false);
   };
-  // --- END FILTER MODAL HANDLERS ---
-  
-  // --- HELPER FUNCTIONS (Secured with optional chaining) ---
-  const getStatusBadge = (status) => {
-    const statusStyles = {
-      pending: "bg-yellow-100 text-yellow-800",
-      "in-progress": "bg-blue-100 text-blue-800",
-      resolved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
-    };
-    if (!status) return (
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800`}>N/A</span>
-    );
-    return (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-          statusStyles[status] || "bg-gray-100 text-gray-800"
-        }`}
-      >
-        {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
-      </span>
-    );
-  };
-
-  
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
 
   const getSortLabel = () => {
     if (!sortConfig) return "Sort By";
     
-    if (sortConfig.key === "upvoteCount" && sortConfig.direction === "ascending") {
-        return "Popularity: Low ↓";
-    }
-    if (sortConfig.key === "upvoteCount" && sortConfig.direction === "descending") {
-        return "Popularity: High ↑";
-    }
     if (sortConfig.key === "priority" && sortConfig.direction === "ascending") {
         return "Priority: Low ↓";
     }
@@ -497,8 +463,6 @@ const MyComplaintsPage = () => {
 
     return "Sort By";
   };
-  // --- END HELPER FUNCTIONS ---
-
 
   if (loading) {
     return (
@@ -534,17 +498,15 @@ const MyComplaintsPage = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800">My Complaints</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Showing: {sortedAndFilteredComplaints.length} complaints (Filtered from {complaints.length})
+            Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedAndFilteredComplaints.length)} of {sortedAndFilteredComplaints.length}
           </p>
         </div>
         
-        {/* CONTROLS (Search, Sort, Filter, Refresh) */}
         <div className="flex flex-col xs:flex-row gap-2 md:gap-3 md:items-center">
-          {/* SEARCH INPUT */}
           <div className="relative w-full xs:w-auto">
             <input
               type="text"
-              placeholder="Search by ID, Title, Committee..."
+              placeholder="Search complaints..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full xs:w-48 sm:w-64 pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 touch-manipulation"
@@ -555,7 +517,6 @@ const MyComplaintsPage = () => {
           </div>
           
           <div className="flex gap-2 md:gap-3">
-            {/* DYNAMIC SORT DROPDOWN */}
             <div className="relative flex-1 xs:flex-initial">
               <select
                 value={sortConfig ? `${sortConfig.key}-${sortConfig.direction}` : ""}
@@ -571,8 +532,6 @@ const MyComplaintsPage = () => {
                 className="w-full xs:w-auto px-3 xs:px-6 py-1.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium cursor-pointer touch-manipulation"
               >
                 <option value="" className="text-gray-500">{getSortLabel()}</option>
-                <option value="upvoteCount-descending">Popularity: High to Low</option>
-                <option value="upvoteCount-ascending">Popularity: Low to High</option>
                 <option value="priority-descending">Priority: High to Low</option>
                 <option value="priority-ascending">Priority: Low to High</option>
                 <option value="createdAt-descending">Date: New to Old</option>
@@ -583,7 +542,6 @@ const MyComplaintsPage = () => {
               </div>
             </div>
 
-            {/* FILTER BUTTON */}
             <button
               onClick={() => {
                 setTempFilters(filters);
@@ -599,13 +557,12 @@ const MyComplaintsPage = () => {
                 <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd"></path>
               </svg>
               { (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0) && (
-                <span className={`text-xs font-bold ${ (filters.status.length > 0 || filters.committee.length > 0 || filters.priority.length > 0) ? 'text-white' : 'text-blue-600'}`}>
+                <span className={`text-xs font-bold ${ (filters.status.length > 0 || filters.priority.length > 0) ? 'text-white' : 'text-blue-600'}`}>
                   ({filters.status.length + filters.committee.length + filters.priority.length})
                 </span>
               )}
             </button>
-            
-            {/* REFRESH BUTTON */}
+
             <button
               onClick={fetchComplaints}
               className="text-sm text-blue-600 hover:text-blue-800 font-medium px-2 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 touch-manipulation"
@@ -642,29 +599,94 @@ const MyComplaintsPage = () => {
           </Link>
         </div>
       ) : (
-        <ComplaintsTable
-          complaints={sortedAndFilteredComplaints}
-          config={{
-            showId: true,
-            showTitle: true,
-            showCommittee: true,
-            showStatus: true,
-            showDate: true,
-            showUpvotes: true,
-            showActions: true,
-            actionType: "view-delete",
-            onDelete: openDeleteModal,
-            onUpvote: handleUpvote,
-            upvoting: upvoting,
-            deletingId: deletingId,
-            viewLinkBase: "/student-dashboard/complaint",
-            emptyMessage: "You haven't filed any complaints yet, or none match your filters.",
-            canDeleteComplaint: (complaint) => complaint?.status === "pending",
-          }}
-        />
+        <>
+          <ComplaintsTable
+            complaints={currentItems}
+            config={{
+              showId: true,
+              showTitle: true,
+              showCommittee: true,
+              showStatus: true,
+              showDate: true,
+              showUpvotes: true,
+              showActions: true,
+              actionType: "view-delete",
+              onDelete: openDeleteModal,
+              onUpvote: handleUpvote,
+              upvoting: upvoting,
+              deletingId: deletingId,
+              viewLinkBase: "/student-dashboard/complaint",
+              emptyMessage: "You haven't filed any complaints yet, or none match your filters.",
+              canDeleteComplaint: (complaint) => complaint?.status === "pending",
+            }}
+          />
+
+          {/* --- PAGINATION CONTROLS (Google Style) --- */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center mt-6 space-x-2">
+              {/* Previous Button */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 rounded text-sm font-medium ${
+                  currentPage === 1
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-blue-600 hover:bg-blue-50 hover:text-blue-800'
+                }`}
+              >
+                Previous
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex space-x-1">
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  // Logic to show limited page numbers if there are too many pages
+                  if (
+                    totalPages > 10 &&
+                    pageNumber !== 1 &&
+                    pageNumber !== totalPages &&
+                    Math.abs(currentPage - pageNumber) > 2
+                  ) {
+                      if (Math.abs(currentPage - pageNumber) === 3) return <span key={pageNumber} className="px-2 text-gray-400">...</span>;
+                      return null;
+                  }
+
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => setCurrentPage(pageNumber)}
+                      className={`px-3 py-1 rounded text-sm font-medium ${
+                        currentPage === pageNumber
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 rounded text-sm font-medium ${
+                  currentPage === totalPages
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-blue-600 hover:bg-blue-50 hover:text-blue-800'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          )}
+          {/* ------------------------------------------- */}
+        </>
       )}
       
-      {/* FILTER MODAL (PRIORITY ADDED) */}
+      {/* FILTER MODAL */}
       {showFilterModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg">
@@ -697,7 +719,7 @@ const MyComplaintsPage = () => {
                 </div>
               </div>
               
-              {/* FILTER BY PRIORITY (NEW BLOCK) */}
+              {/* FILTER BY PRIORITY */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-3">
                   Priority
@@ -719,7 +741,6 @@ const MyComplaintsPage = () => {
                 </div>
               </div>
 
-
               {/* Filter by Committee/Category */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-3">
@@ -727,7 +748,7 @@ const MyComplaintsPage = () => {
                 </h3>
                 <div className="flex flex-wrap gap-4">
                   {[...new Set(complaints.map(c => c.category).filter(c => c))]
-                    .filter(category => category !== "Canteen") // Exclude Canteen
+                    .filter(category => category !== "Canteen") 
                     .sort()
                     .map((category) => (
                     <label key={category} className="flex items-center space-x-2 cursor-pointer">
@@ -781,6 +802,7 @@ const MyComplaintsPage = () => {
     </div>
   );
 };
+
 // Complaint Detail Page with Status History
 const ComplaintDetailPage = () => {
   const [complaint, setComplaint] = useState(null);
@@ -1099,11 +1121,21 @@ const AllComplaintsPage = () => {
   });
   const [tempFilters, setTempFilters] = useState(filters);
   const [searchTerm, setSearchTerm] = useState(""); 
-  // --- END NEW STATE ---
+  
+  // --- PAGINATION STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
+  // ------------------------
 
   useEffect(() => {
     fetchPublicComplaints();
   }, []);
+
+  // --- PAGINATION RESET ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filters, sortConfig]);
+  // ------------------------
 
   const fetchPublicComplaints = async () => {
     try {
@@ -1291,14 +1323,20 @@ const AllComplaintsPage = () => {
           return sortConfig.direction === "ascending" ? 1 : -1;
         }
         
-       
+        // Fallback sort by Date Created
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
     }
 
     return processableComplaints;
   }, [complaints, sortConfig, filters, searchTerm]);
-  // --- END DYNAMIC LOGIC ---
+
+  // --- PAGINATION CALCULATION ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedAndFilteredComplaints.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedAndFilteredComplaints.length / itemsPerPage);
+  // ------------------------------
 
   // --- FILTER MODAL HANDLERS ---
   const handleFilterChange = (filterType, value, isChecked) => {
@@ -1323,51 +1361,8 @@ const AllComplaintsPage = () => {
     setTempFilters(defaultFilters);
     setShowFilterModal(false);
   };
-  // --- END FILTER MODAL HANDLERS ---
   
   // --- HELPER FUNCTIONS ---
-  const getStatusBadge = (status) => {
-    const statusStyles = {
-      pending: "bg-yellow-100 text-yellow-800",
-      "in-progress": "bg-blue-100 text-blue-800",
-      resolved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
-    };
-
-    if (!status) return (
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800`}>N/A</span>
-    );
-
-    return (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-          statusStyles[status] || "bg-gray-100 text-gray-800"
-        }`}
-      >
-        {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
-      </span>
-    );
-  };
-
-  
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const getUserName = (userId) => {
-    if (!userId) return "Unknown";
-    return userId.name || "Unknown";
-  };
-  
   const getSortLabel = () => {
     if (!sortConfig) return "Sort By";
     
@@ -1392,8 +1387,6 @@ const AllComplaintsPage = () => {
 
     return "Sort By";
   };
-  // --- END HELPER FUNCTIONS ---
-
 
   // --- RENDERING BLOCK (Loading/Error) ---
   if (loading) {
@@ -1423,7 +1416,6 @@ const AllComplaintsPage = () => {
       </div>
     );
   }
-  // --- END RENDERING BLOCK ---
 
   // --- MAIN RENDER ---
   return (
@@ -1432,7 +1424,7 @@ const AllComplaintsPage = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800">All Complaints</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Showing: {sortedAndFilteredComplaints.length} complaints (Filtered from {complaints.length})
+            Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedAndFilteredComplaints.length)} of {sortedAndFilteredComplaints.length}
           </p>
         </div>
         
@@ -1523,23 +1515,88 @@ const AllComplaintsPage = () => {
           </Link>
         </div>
       ) : (
-        <ComplaintsTable
-          complaints={sortedAndFilteredComplaints}
-          config={{
-            showId: true,
-            showTitle: true,
-            showCommittee: true,
-            showStatus: true,
-            showDate: true,
-            showUpvotes: true,
-            showActions: true,
-            actionType: "view-only",
-            viewLinkBase: "/student-dashboard/complaint",
-            onUpvote: handleUpvote,
-            upvoting: upvoting,
-            emptyMessage: "No public complaints found matching current criteria.",
-          }}
-        />
+        <>
+          <ComplaintsTable
+            complaints={currentItems}
+            config={{
+              showId: true,
+              showTitle: true,
+              showCommittee: true,
+              showStatus: true,
+              showDate: true,
+              showUpvotes: true,
+              showActions: true,
+              actionType: "view-only",
+              viewLinkBase: "/student-dashboard/complaint",
+              onUpvote: handleUpvote,
+              upvoting: upvoting,
+              emptyMessage: "No public complaints found matching current criteria.",
+            }}
+          />
+
+          {/* --- PAGINATION CONTROLS (Google Style) --- */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center mt-6 space-x-2">
+              {/* Previous Button */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 rounded text-sm font-medium ${
+                  currentPage === 1
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-blue-600 hover:bg-blue-50 hover:text-blue-800'
+                }`}
+              >
+                Previous
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex space-x-1">
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  // Logic to show limited page numbers if there are too many pages
+                  if (
+                    totalPages > 10 &&
+                    pageNumber !== 1 &&
+                    pageNumber !== totalPages &&
+                    Math.abs(currentPage - pageNumber) > 2
+                  ) {
+                      if (Math.abs(currentPage - pageNumber) === 3) return <span key={pageNumber} className="px-2 text-gray-400">...</span>;
+                      return null;
+                  }
+
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => setCurrentPage(pageNumber)}
+                      className={`px-3 py-1 rounded text-sm font-medium ${
+                        currentPage === pageNumber
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 rounded text-sm font-medium ${
+                  currentPage === totalPages
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-blue-600 hover:bg-blue-50 hover:text-blue-800'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          )}
+          {/* ------------------------------------------- */}
+        </>
       )}
 
       {/* FILTER MODAL */}
@@ -1575,25 +1632,25 @@ const AllComplaintsPage = () => {
                 </div>
               </div>
               <div>
-    <h3 className="text-lg font-semibold text-gray-700 mb-3">
-      Priority
-    </h3>
-    <div className="flex flex-wrap gap-4">
-      {["High", "Medium", "Low"].map((priority) => (
-        <label key={priority} className="flex items-center space-x-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={tempFilters.priority.includes(priority)}
-            onChange={(e) =>
-              handleFilterChange("priority", priority, e.target.checked)
-            }
-            className="form-checkbox h-4 w-4 text-blue-600 rounded"
-          />
-          <span className="text-gray-700 text-sm">{priority}</span>
-        </label>
-      ))}
-    </div>
-  </div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                  Priority
+                </h3>
+                <div className="flex flex-wrap gap-4">
+                  {["High", "Medium", "Low"].map((priority) => (
+                    <label key={priority} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tempFilters.priority.includes(priority)}
+                        onChange={(e) =>
+                          handleFilterChange("priority", priority, e.target.checked)
+                        }
+                        className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                      />
+                      <span className="text-gray-700 text-sm">{priority}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
               {/* Filter by Committee/Category */}
               <div>
