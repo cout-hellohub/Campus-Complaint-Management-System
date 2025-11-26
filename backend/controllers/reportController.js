@@ -22,6 +22,10 @@ export const generateMonthlyCommitteeReport = async (req, res) => {
       return res.status(200).json({ message: "Invalid committee type" });
     }
 
+    // Set response headers early for Vercel
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=Committee_Report.pdf");
+
     const fromDate = date30DaysAgo();
 
     // Fetch complaints USING THE SAME LOGIC AS Assigned Complaints Page
@@ -40,11 +44,8 @@ export const generateMonthlyCommitteeReport = async (req, res) => {
     const medium = complaints.filter((c) => c.priority === "Medium").length;
     const low = complaints.filter((c) => c.priority === "Low").length;
 
-    // Start PDF
-    const doc = new PDFDocument();
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "attachment; filename=Report.pdf");
-
+    // Start PDF with smaller buffer for Vercel
+    const doc = new PDFDocument({ bufferPages: true });
     doc.pipe(res);
 
     doc.fontSize(20).text("Committee Monthly Analytics Report", { underline: true });
@@ -52,7 +53,17 @@ export const generateMonthlyCommitteeReport = async (req, res) => {
     doc.fontSize(14).text(`Committee: ${committeeType}`);
     doc.text(`Category Mapped To: ${category}`);
     doc.text(`Report Range: Last 30 Days`);
-    doc.text(`Created on: ${new Date().toLocaleString()}`);
+    const now = new Date();
+    const timestamp = now.toLocaleString('en-US', {
+      timeZone: 'UTC',
+      year: 'numeric',
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    doc.text(`Created on: ${timestamp} UTC`);
 
     doc.moveDown().fontSize(16).text("Summary:");
     doc.fontSize(13).text(`Total Complaints: ${total}`);
