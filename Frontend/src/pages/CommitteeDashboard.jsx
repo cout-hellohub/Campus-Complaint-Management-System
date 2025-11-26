@@ -264,6 +264,12 @@ const AssignedComplaintsPage = () => {
   };
 
   const openStatusModal = (complaint) => {
+    if (!complaint) return;
+    const normalizedStatus = (complaint.status || "").toLowerCase();
+    if (normalizedStatus === "resolved" || normalizedStatus === "rejected") {
+      showToast("You cannot update complaints that are already resolved or rejected.", "error");
+      return;
+    }
     setSelectedComplaint(complaint);
     setNewStatus(complaint.status);
     setStatusDescription("");
@@ -835,7 +841,7 @@ const AssignedComplaintsPage = () => {
 };
 
 // C4: Department/committee analytics dashboard (committee-scoped, cached, refreshable)
-const AnalyticsDashboardPage = () => {
+const AnalyticsDashboardPage = ({ profileDisplayName = "" }) => {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -857,6 +863,25 @@ const AnalyticsDashboardPage = () => {
   } catch (e) {
     committeeType = null;
   }
+
+  const resolveCommitteeDisplayName = () => {
+    const fallback = committeeType || "Committee";
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("ccms_user") : null;
+      if (!stored) return fallback;
+      const parsed = JSON.parse(stored);
+      const name = typeof parsed?.name === "string" ? parsed.name.trim() : "";
+      if (name) return name;
+      const type = typeof parsed?.committeeType === "string" ? parsed.committeeType.trim() : "";
+      if (type) return type;
+      const committee = typeof parsed?.committee === "string" ? parsed.committee.trim() : "";
+      if (committee) return committee;
+      return fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const committeeDisplayName = profileDisplayName.trim() || resolveCommitteeDisplayName();
 
   const CACHE_KEY = "committee_analytics";
   const [complaintsList, setComplaintsList] = useState([]);
@@ -1112,7 +1137,7 @@ const AnalyticsDashboardPage = () => {
       <div className="bg-white p-6 rounded-xl shadow-lg">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">{committeeType || 'Committee'} Analytics</h1>
+          <h1 className="text-2xl font-bold text-gray-800">{committeeDisplayName} Analytics</h1>
           <p className="mt-2 text-gray-600">Overview of complaints handled by your committee.</p>
         </div>
 
@@ -1393,8 +1418,8 @@ const CommitteeDashboardHome = () => {
   try {
     if (userStr) {
       const user = JSON.parse(userStr);
-      // specific logic to find the best display name
-      committeeName = user.committeeType || user.name || "Committee";
+      const displayName = (user?.name && user.name.trim()) || (user?.committeeType && user.committeeType.trim());
+      committeeName = displayName || "Committee";
     }
   } catch (e) {
     // Fallback to default if parsing fails
@@ -1644,12 +1669,12 @@ export default function CommitteeDashboard() {
   } catch (e) {
     currentUser = null;
   }
-  const profileInitial = currentUser?.committeeType
-    ? currentUser.committeeType.charAt(0).toUpperCase()
-    : currentUser?.name
-    ? currentUser.name.charAt(0).toUpperCase()
-    : 'C';
-  const profileName = currentUser?.committeeType ?? currentUser?.name ?? 'Committee Name';
+  const profileDisplayName =
+    (currentUser?.name && currentUser.name.trim()) ||
+    (currentUser?.committeeType && currentUser.committeeType.trim()) ||
+    "Committee Name";
+  const profileInitial = profileDisplayName.charAt(0).toUpperCase();
+  const profileName = profileDisplayName;
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -1751,6 +1776,34 @@ export default function CommitteeDashboard() {
       }
     } catch (err) {
       console.error("Delete notification error:", err);
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const ids = (notifications || []).map((notification) => notification?._id).filter(Boolean);
+      if (ids.length === 0) {
+        return;
+      }
+
+      await Promise.all(
+        ids.map((id) =>
+          axios.delete(`${API_BASE_URL}/notifications/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+        )
+      );
+
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Clear all notifications error:", err);
     }
   };
 
@@ -1881,6 +1934,7 @@ export default function CommitteeDashboard() {
           loadingNotifications={loadingNotifications}
           onBellClick={handleBellClick}
           onMarkAllRead={markAllAsRead}
+          onClearAllNotifications={clearAllNotifications}
           onNotificationClick={handleNotificationClick}
           onNotificationDelete={handleNotificationDelete}
           notificationDropdownOpen={notificationDropdownOpen}
@@ -1912,7 +1966,7 @@ export default function CommitteeDashboard() {
               path="assigned-complaints"
               element={<AssignedComplaintsPage />}
             />
-            <Route path="analytics" element={<AnalyticsDashboardPage />} />
+            <Route path="analytics" element={<AnalyticsDashboardPage profileDisplayName={profileName} />} />
           </Routes>
         </main>
       </div>

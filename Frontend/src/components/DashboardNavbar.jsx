@@ -49,6 +49,15 @@ const DashboardNavbar = ({
     logoutButton: logoutButtonTestId = "dropdown-logout-button",
   } = testIds;
 
+  const notificationList = Array.isArray(notifications) ? notifications : [];
+  const hasNotifications = notificationList.length > 0;
+  const canClearNotifications = hasNotifications && typeof onClearAllNotifications === "function";
+  const canMarkNotifications = hasNotifications && typeof onMarkAllRead === "function";
+  const showNotificationActions = canClearNotifications || canMarkNotifications;
+  const markAllDisabled = !canMarkNotifications || unreadCount <= 0;
+  const actionButtonBaseClasses =
+    "inline-flex items-center justify-center min-w-[110px] px-3 py-1 text-[11px] sm:text-xs font-semibold rounded-md border transition-colors touch-manipulation";
+
   return (
     <header
       className="bg-white shadow-sm h-16 sm:h-20 flex items-center justify-between px-3 sm:px-4 md:px-6 lg:px-8 border-b"
@@ -100,30 +109,40 @@ const DashboardNavbar = ({
                 <h3 className="font-semibold text-sm sm:text-base text-gray-800" data-testid={notificationsTitleTestId}>
                   Notifications
                 </h3>
-                <div className="flex items-center gap-3">
-                  {notifications.length > 0 && onClearAllNotifications && (
+                {showNotificationActions && (
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <button
+                      type="button"
                       onClick={onClearAllNotifications}
-                      className="text-[11px] sm:text-xs text-red-600 hover:text-red-700 active:text-red-800 font-medium touch-manipulation whitespace-nowrap"
+                      disabled={!canClearNotifications}
+                      className={`${actionButtonBaseClasses} ${
+                        canClearNotifications
+                          ? "text-red-600 border-red-200 bg-red-50 hover:bg-red-100 hover:text-red-700"
+                          : "text-red-300 border-gray-200 bg-gray-50 cursor-not-allowed"
+                      }`}
                     >
                       Clear all
                     </button>
-                  )}
-                  {unreadCount > 0 && onMarkAllRead && (
                     <button
-                      onClick={onMarkAllRead}
-                      className="text-[11px] sm:text-xs text-blue-600 hover:text-blue-800 active:text-blue-900 font-medium touch-manipulation whitespace-nowrap"
+                      type="button"
+                      onClick={markAllDisabled ? undefined : onMarkAllRead}
+                      disabled={markAllDisabled}
+                      className={`${actionButtonBaseClasses} ${
+                        markAllDisabled
+                          ? "text-blue-300 border-gray-200 bg-gray-50 cursor-not-allowed"
+                          : "text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-800"
+                      }`}
                       data-testid={markAllReadButtonTestId}
                     >
                       Mark all as read
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
               <div className="overflow-y-auto flex-1">
                 {loadingNotifications ? (
                   <div className="p-4 text-center text-sm sm:text-base text-gray-500">Loading...</div>
-                ) : notifications.length === 0 ? (
+                ) : notificationList.length === 0 ? (
                   <div className="p-6 sm:p-8 text-center text-gray-500">
                     {emptyState ?? (
                       <>
@@ -134,7 +153,7 @@ const DashboardNavbar = ({
                     )}
                   </div>
                 ) : (
-                  notifications.map((notification) => (
+                  notificationList.map((notification) => (
                     <div
                       key={notification._id}
                       className={`px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer touch-manipulation ${

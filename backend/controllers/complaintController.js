@@ -800,6 +800,13 @@ export const deleteComplaint = async (req, res) => {
       });
     }
 
+    const normalizedStatus = (complaint.status || '').toLowerCase();
+    if (normalizedStatus === 'resolved') {
+      return res.status(400).json({
+        message: 'Resolved complaints cannot be deleted',
+      });
+    }
+
     // --- NEW CODE STARTS HERE: Delete attachments from Cloudinary ---
     if (complaint.attachments && complaint.attachments.length > 0) {
       const deletePromises = complaint.attachments.map((fileUrl) => 

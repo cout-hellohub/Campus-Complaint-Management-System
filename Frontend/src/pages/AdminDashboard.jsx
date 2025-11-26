@@ -2179,7 +2179,7 @@ export default function AdminDashboard() {
 
   const handleNotificationDelete = (notification) => {
     if (!notification) return;
-    dismissNotification(notification._id, notification.isRead);
+    deleteNotification(notification._id);
   };
 
   const handleBellClick = () => {
