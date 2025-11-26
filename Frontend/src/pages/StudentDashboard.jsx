@@ -245,6 +245,16 @@ const MyComplaintsPage = () => {
 
   const openDeleteModal = (complaintId) => {
     const target = complaints.find((complaint) => complaint?._id === complaintId) || null;
+    if (!target) {
+      setActionError("We couldn't find that complaint. Please refresh and try again.");
+      return;
+    }
+    const normalizedStatus = (target.status || "").toLowerCase();
+    if (normalizedStatus === "resolved") {
+      setActionError("Complaints that are already resolved cannot be deleted.");
+      setShowDeleteModal(false);
+      return;
+    }
     setDeleteTarget(target);
     setActionError("");
     setShowDeleteModal(true);
@@ -303,6 +313,13 @@ const MyComplaintsPage = () => {
   const handleDelete = async () => {
     const complaintId = deleteTarget?._id;
     if (!complaintId) {
+      closeDeleteModal();
+      return;
+    }
+
+    const normalizedStatus = (deleteTarget?.status || "").toLowerCase();
+    if (normalizedStatus === "resolved") {
+      setActionError("Complaints that are already resolved cannot be deleted.");
       closeDeleteModal();
       return;
     }
@@ -617,7 +634,7 @@ const MyComplaintsPage = () => {
               deletingId: deletingId,
               viewLinkBase: "/student-dashboard/complaint",
               emptyMessage: "You haven't filed any complaints yet, or none match your filters.",
-              canDeleteComplaint: (complaint) => complaint?.status === "pending",
+              canDeleteComplaint: (complaint) => (complaint?.status || "").toLowerCase() === "pending",
             }}
           />
 
