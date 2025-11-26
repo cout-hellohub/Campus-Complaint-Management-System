@@ -29,7 +29,7 @@ import {
 import DashboardSidebar from "../components/DashboardSidebar";
 import DashboardNavbar from "../components/DashboardNavbar";
 import ProfilePage from "./ProfilePage";
-import CreateAccountPage from "./CreateAccountPage"; // <--- 1. IMPORT ADDED
+import CreateAccountPage from "./CreateAccountPage";
 import StatusToast from "../components/StatusToast.jsx";
 import ComplaintsTable from "../components/ComplaintsTable";
 import useBackLogoutGuard from "../hooks/useBackLogoutGuard";
@@ -146,43 +146,34 @@ const AdminDashboardHome = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const statusStyles = {
-      pending: "bg-yellow-50 text-yellow-700",
-      "in-progress": "bg-blue-50 text-blue-700",
-      resolved: "bg-green-50 text-green-700",
-      rejected: "bg-gray-100 text-gray-800",
-    };
-
-    return (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-          statusStyles[status] || "bg-gray-100 text-gray-800"
-        }`}
-      >
-        {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
-      </span>
-    );
+  const getBackgroundColor = (color) => {
+    switch (color) {
+      case "blue": return "bg-blue-50";
+      case "green": return "bg-green-50";
+      case "yellow": return "bg-yellow-50";
+      case "red": return "bg-red-50";
+      default: return "bg-gray-50";
+    }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  const getBorderColor = (color) => {
+    switch (color) {
+      case "blue": return "border-blue-500";
+      case "green": return "border-green-500";
+      case "yellow": return "border-yellow-500";
+      case "red": return "border-red-500";
+      default: return "border-gray-500";
+    }
   };
 
-  const getComplaintId = (id) => {
-    if (!id) return "N/A";
-    return `CC${id.slice(-6).toUpperCase()}`;
-  };
-
-  const getUserName = (userId) => {
-    if (!userId) return "Unknown";
-    return userId.name || "Unknown";
+  const getLabelColor = (color) => {
+    switch (color) {
+      case "blue": return "text-blue-700";
+      case "green": return "text-green-700";
+      case "yellow": return "text-yellow-700";
+      case "red": return "text-red-700";
+      default: return "text-gray-700";
+    }
   };
 
   if (loading) {
@@ -214,72 +205,11 @@ const AdminDashboardHome = () => {
   }
 
   const statsCards = [
-    {
-      label: "Total Complaints",
-      value: stats.total,
-      color: "blue",
-    },
-    {
-      label: "Pending",
-      value: stats.pending,
-      color: "red",
-    },
-    {
-      label: "In Progress",
-      value: stats.inProgress,
-      color: "yellow",
-    },
-    {
-      label: "Resolved",
-      value: stats.resolved,
-      color: "green",
-    },
+    { label: "Total Complaints", value: stats.total, color: "blue" },
+    { label: "Pending", value: stats.pending, color: "red" },
+    { label: "In Progress", value: stats.inProgress, color: "yellow" },
+    { label: "Resolved", value: stats.resolved, color: "green" },
   ];
-
-  const getBorderColor = (color) => {
-    switch (color) {
-      case "blue":
-        return "border-blue-500";
-      case "green":
-        return "border-green-500";
-      case "yellow":
-        return "border-yellow-500";
-      case "red":
-        return "border-red-500";
-      default:
-        return "border-gray-500";
-    }
-  };
-
-  const getBackgroundColor = (color) => {
-    switch (color) {
-      case "blue":
-        return "bg-blue-50";
-      case "green":
-        return "bg-green-50";
-      case "yellow":
-        return "bg-yellow-50";
-      case "red":
-        return "bg-red-50";
-      default:
-        return "bg-gray-50";
-    }
-  };
-
-  const getLabelColor = (color) => {
-    switch (color) {
-      case "blue":
-        return "text-blue-700";
-      case "green":
-        return "text-green-700";
-      case "yellow":
-        return "text-yellow-700";
-      case "red":
-        return "text-red-700";
-      default:
-        return "text-gray-700";
-    }
-  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -290,19 +220,14 @@ const AdminDashboardHome = () => {
         </p>
       </div>
 
-      {/* changed lg:grid-cols-4 -> lg:grid-cols-5 to make room for Rejected card */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {statsCards.map((stat) => (
           <div
             key={stat.label}
-            className={`p-6 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(
-              stat.color
-            )} ${getBorderColor(stat.color)}`}
+            className={`p-6 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(stat.color)} ${getBorderColor(stat.color)}`}
           >
             <div className="flex justify-between items-center">
-              <span
-                className={`text-sm font-medium ${getLabelColor(stat.color)}`}
-              >
+              <span className={`text-sm font-medium ${getLabelColor(stat.color)}`}>
                 {stat.label}
               </span>
             </div>
@@ -312,11 +237,9 @@ const AdminDashboardHome = () => {
           </div>
         ))}
 
-        {/* Rejected Complaints card (added to match Committee Dashboard style) */}
+        {/* Rejected Complaints card */}
         <div
-          className={`p-6 rounded-lg shadow-lg border-l-8 ${getBackgroundColor(
-            "gray"
-          )} ${getBorderColor("gray")}`}
+          className={`p-6 rounded-lg shadow-lg border-l-8 ${getBackgroundColor("gray")} ${getBorderColor("gray")}`}
         >
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium text-gray-700">Rejected Complaints</span>
@@ -375,10 +298,20 @@ const AllComplaintsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [toast, setToast] = useState(null);
 
+  // --- PAGINATION STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
+  // ------------------------
 
   useEffect(() => {
     fetchAllComplaints();
   }, []);
+
+  // --- PAGINATION RESET ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filters, sortConfig]);
+  // ------------------------
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -469,9 +402,6 @@ const AllComplaintsPage = () => {
     setShowStatusModal(true);
   };
 
-  // --- MERGE CONFLICT WAS HERE ---
-  // I have kept the new `openViewModal` function from the pull
-  // and removed the conflict markers.
   const openViewModal = (complaint) => {
     setSelectedComplaint(complaint);
     setShowViewModal(true);
@@ -481,7 +411,6 @@ const AllComplaintsPage = () => {
     if (!id) return "";
     return `CC${id.slice(-6).toUpperCase()}`;
   };
-  // --- END OF CONFLICT RESOLUTION ---
 
   const sortComplaints = (key, newDirection) => {
     setSortConfig({ key, direction: newDirection });
@@ -507,9 +436,7 @@ const AllComplaintsPage = () => {
 
         if (directMatch) return true;
 
-
         if (searchWords.length > 0) {
-
           const wordMatch = searchWords.every(word => userName.includes(word));
           if (wordMatch) return true;
         }
@@ -517,7 +444,6 @@ const AllComplaintsPage = () => {
         return false;
       });
     }
-
 
     if (filters.status.length > 0) {
       processableComplaints = processableComplaints.filter(c => c && filters.status.includes(c.status));
@@ -537,7 +463,6 @@ const AllComplaintsPage = () => {
         let aVal = a[sortConfig.key];
         let bVal = b[sortConfig.key];
 
-
         if (sortConfig.key === "priority") {
           const priorityOrder = { High: 3, Medium: 2, Low: 1 };
           aVal = priorityOrder[aVal] || 0;
@@ -546,7 +471,6 @@ const AllComplaintsPage = () => {
 
         if (aVal == null) return sortConfig.direction === "ascending" ? 1 : -1;
         if (bVal == null) return sortConfig.direction === "ascending" ? -1 : 1;
-
 
         if (aVal < bVal) {
           return sortConfig.direction === "ascending" ? -1 : 1;
@@ -560,6 +484,13 @@ const AllComplaintsPage = () => {
 
     return processableComplaints;
   }, [complaints, sortConfig, filters, searchTerm]);
+
+  // --- PAGINATION CALCULATION ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedAndFilteredComplaints.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedAndFilteredComplaints.length / itemsPerPage);
+  // ------------------------------
 
   const handleFilterChange = (filterType, value, isChecked) => {
     setTempFilters(prev => {
@@ -603,44 +534,14 @@ const AllComplaintsPage = () => {
     );
   };
 
-  const getPriorityBadge = (priority) => {
-    const priorityStyles = {
-      High: "bg-red-100 text-red-800",
-      Medium: "bg-yellow-100 text-yellow-800",
-      Low: "bg-green-100 text-green-800",
-    };
-
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          priorityStyles[priority] || "bg-gray-100 text-gray-800"
-        }`}
-      >
-        {priority}
-      </span>
-    );
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   const getSortLabel = () => {
     if (!sortConfig) return "Sort By";
-
     if (sortConfig.key === "priority") {
       return `Priority: ${sortConfig.direction === "ascending" ? "Low ↓" : "High ↑"}`;
     }
     if (sortConfig.key === "createdAt") {
       return `Date: ${sortConfig.direction === "ascending" ? "Oldest ↓" : "Newest ↑"}`;
     }
-
     return "Sort By";
   };
 
@@ -690,7 +591,7 @@ const AllComplaintsPage = () => {
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-800">All Complaints</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Total: {sortedAndFilteredComplaints.length} complaints (Filtered from {complaints.length})
+              Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedAndFilteredComplaints.length)} of {sortedAndFilteredComplaints.length}
             </p>
           </div>
 
@@ -766,7 +667,7 @@ const AllComplaintsPage = () => {
         </div>
 
       <ComplaintsTable
-        complaints={sortedAndFilteredComplaints}
+        complaints={currentItems}
         config={{
           showId: true,
           showTitle: true,
@@ -782,6 +683,68 @@ const AllComplaintsPage = () => {
           emptyMessage: "No complaints found matching current criteria.",
         }}
       />
+
+      {/* --- PAGINATION CONTROLS (Google Style) --- */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center mt-6 space-x-2">
+          {/* Previous Button */}
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className={`px-3 py-1 rounded text-sm font-medium ${
+              currentPage === 1
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-blue-600 hover:bg-blue-50 hover:text-blue-800'
+            }`}
+          >
+            Previous
+          </button>
+
+          {/* Page Numbers */}
+          <div className="flex space-x-1">
+            {[...Array(totalPages)].map((_, index) => {
+              const pageNumber = index + 1;
+              // Logic to show limited page numbers if there are too many pages
+              if (
+                totalPages > 10 &&
+                pageNumber !== 1 &&
+                pageNumber !== totalPages &&
+                Math.abs(currentPage - pageNumber) > 2
+              ) {
+                  if (Math.abs(currentPage - pageNumber) === 3) return <span key={pageNumber} className="px-2 text-gray-400">...</span>;
+                  return null;
+              }
+
+              return (
+                <button
+                  key={pageNumber}
+                  onClick={() => setCurrentPage(pageNumber)}
+                  className={`px-3 py-1 rounded text-sm font-medium ${
+                    currentPage === pageNumber
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Next Button */}
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-1 rounded text-sm font-medium ${
+              currentPage === totalPages
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-blue-600 hover:bg-blue-50 hover:text-blue-800'
+            }`}
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {showViewModal && selectedComplaint && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1422,7 +1385,7 @@ const AdminCommitteeAnalytics = () => {
                 <BarChart data={(analyticsData.subcategoryCounts || []).filter(d => d.count > 0)}>
                   <XAxis
                     dataKey="category"
-                    tick={{ fontSize: 10 }}   // 👈 smaller font size
+                    tick={{ fontSize: 10 }}
                   />
                 <YAxis />
                 <Tooltip />
@@ -1511,72 +1474,6 @@ const AdminCommitteeAnalytics = () => {
     </div>
   );
 };
-
-const generalComplaintsData = [
-  {
-    id: 1,
-    title: "Monkey menace near academic block",
-    description: "Monkeys continue to roam near the academic block; students have been bitten or chased.",
-    committee: "General",
-    priority: "High",
-    type: "General",
-    anonymous: "No",
-  },
-  {
-    id: 2,
-    title: "Streetlights not working",
-    description: "The streetlights between the hostel and main gate stop working after 9 PM.",
-    committee: "General",
-    priority: "High",
-    type: "General",
-    anonymous: "No",
-  },
-  {
-    id: 5,
-    title: "Unclean water from coolers",
-    description: "Water coolers near the CEP area are dispensing bad-smelling, unclean water.",
-    committee: "General",
-    priority: "High",
-    type: "General",
-    anonymous: "No",
-  },
-  {
-    id: 3,
-    title: "Garbage overflow near LT-2",
-    description: "The garbage bins near LT-2 overflow regularly and attract stray animals.",
-    committee: "General",
-    priority: "Medium",
-    type: "General",
-    anonymous: "No",
-  },
-  {
-    id: 6,
-    title: "Parking area congestion",
-    description: "The student parking area lacks proper markings; vehicles often get blocked.",
-    committee: "General",
-    priority: "Medium",
-    type: "General",
-    anonymous: "No",
-  },
-  {
-    id: 7,
-    title: "Library air-conditioning not working",
-    description: "The air-conditioning in the library reading room isn’t functioning.",
-    committee: "General",
-    priority: "Medium",
-    type: "General",
-    anonymous: "No",
-  },
-  {
-    id: 4,
-    title: "Construction noise near library",
-    description: "Theres loud construction noise near the library during study hours.",
-    committee: "General",
-    priority: "Low",
-    type: "General",
-    anonymous: "No",
-  },
-];
 
 const PriorityBadge = ({ priority }) => {
   let colors = "bg-gray-100 text-gray-800";

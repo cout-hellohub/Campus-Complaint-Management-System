@@ -1,5 +1,4 @@
-import React from "react";
-import { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   FaBell,
@@ -7,10 +6,6 @@ import {
   FaTasks,
   FaChartBar,
   FaSpinner,
-  FaFileAlt,
-  FaEye,
-  FaCheckCircle,
-  FaTimesCircle,
 } from "react-icons/fa";
 import axios from "axios";
 import API_BASE_URL from "../config/api.js";
@@ -18,50 +13,54 @@ import StatusToast from "../components/StatusToast.jsx";
 import useBackLogoutGuard from "../hooks/useBackLogoutGuard";
 import DashboardSidebar from "../components/DashboardSidebar";
 import DashboardNavbar from "../components/DashboardNavbar";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  CartesianGrid,
+  Legend,
+} from 'recharts';
+
+// Import shared pages (like Profile)
+import ProfilePage from "./ProfilePage";
+import ComplaintsTable from "../components/ComplaintsTable";
 
 // Shared UI helpers used by multiple sub-pages
 const getBorderColor = (color) => {
   switch (color) {
-    case "blue":
-      return "border-blue-500";
-    case "green":
-      return "border-green-500";
-    case "yellow":
-      return "border-yellow-500";
-    case "red":
-      return "border-red-500";
-    default:
-      return "border-gray-500";
+    case "blue": return "border-blue-500";
+    case "green": return "border-green-500";
+    case "yellow": return "border-yellow-500";
+    case "red": return "border-red-500";
+    default: return "border-gray-500";
   }
 };
 
 const getBackgroundColor = (color) => {
   switch (color) {
-    case "blue":
-      return "bg-blue-50";
-    case "green":
-      return "bg-green-50";
-    case "yellow":
-      return "bg-yellow-50";
-    case "red":
-      return "bg-red-50";
-    default:
-      return "bg-gray-50";
+    case "blue": return "bg-blue-50";
+    case "green": return "bg-green-50";
+    case "yellow": return "bg-yellow-50";
+    case "red": return "bg-red-50";
+    default: return "bg-gray-50";
   }
 };
 
 const getLabelColor = (color) => {
   switch (color) {
-    case "blue":
-      return "text-blue-700";
-    case "green":
-      return "text-green-700";
-    case "yellow":
-      return "text-yellow-700";
-    case "red":
-      return "text-red-700";
-    default:
-      return "text-gray-700";
+    case "blue": return "text-blue-700";
+    case "green": return "text-green-700";
+    case "yellow": return "text-yellow-700";
+    case "red": return "text-red-700";
+    default: return "text-gray-700";
   }
 };
 
@@ -101,27 +100,8 @@ const committeeNavbarTestIds = {
   logoutButton: "dropdown-logout-button",
   menuButton: "committee-sidebar-menu-button",
 };
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  CartesianGrid,
-  Legend,
-} from 'recharts';
 
-// Import shared pages (like Profile)
-import ProfilePage from "./ProfilePage";
-import ComplaintsTable from "../components/ComplaintsTable";
-
-// --- 2. Placeholder Pages for Committee Features ---
+// --- 2. Pages for Committee Features ---
 
 // C2: View & manage assigned complaints
 const AssignedComplaintsPage = () => {
@@ -145,7 +125,11 @@ const AssignedComplaintsPage = () => {
   });
   const [tempFilters, setTempFilters] = useState(filters);
   const [searchTerm, setSearchTerm] = useState(""); 
-  // --- END STATE ---
+  
+  // --- PAGINATION STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
+  // ------------------------
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -156,7 +140,6 @@ const AssignedComplaintsPage = () => {
   const targetComplaintIdRef = useRef(null);
 
   useEffect(() => {
-    // capture complaintId query param if present so we can open it after fetch
     try {
       const params = new URLSearchParams(location.search);
       const cid = params.get('complaintId');
@@ -167,6 +150,12 @@ const AssignedComplaintsPage = () => {
 
     fetchAssignedComplaints();
   }, [location.search]);
+
+  // --- PAGINATION RESET ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filters, sortConfig]);
+  // ------------------------
 
   const fetchAssignedComplaints = async () => {
     try {
@@ -191,7 +180,7 @@ const AssignedComplaintsPage = () => {
       );
 
       setComplaints(data.complaints || []);
-      // If a complaintId was passed in the URL, open it once complaints are loaded
+      
       try {
         const cid = targetComplaintIdRef.current;
         if (cid) {
@@ -199,7 +188,6 @@ const AssignedComplaintsPage = () => {
           if (found) {
             setSelectedComplaint(found);
             setShowViewModal(true);
-            // clear the param from URL
             navigate('/committee-dashboard/assigned-complaints', { replace: true });
           }
         }
@@ -244,7 +232,6 @@ const AssignedComplaintsPage = () => {
     
       await fetchAssignedComplaints();
       
-   
       setShowStatusModal(false);
       setSelectedComplaint(null);
       setNewStatus("");
@@ -270,7 +257,6 @@ const AssignedComplaintsPage = () => {
     setShowStatusModal(true);
   };
 
-
   const openViewModal = (complaint) => {
     setSelectedComplaint(complaint);
     setShowViewModal(true);
@@ -282,12 +268,6 @@ const AssignedComplaintsPage = () => {
     return `CC${id.slice(-6).toUpperCase()}`;
   };
 
-  const getUserName = (userId) => {
-    if (!userId) return "Unknown";
- 
-    return userId.name || "Unknown";
-  };
-  
   const getStatusBadge = (status) => {
     const statusStyles = {
       pending: "bg-yellow-50 text-yellow-700",
@@ -309,41 +289,6 @@ const AssignedComplaintsPage = () => {
         {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
       </span>
     );
-  };
-
-  const getPriorityBadge = (priority) => {
-    const priorityStyles = {
-      High: "bg-red-100 text-red-800",
-      Medium: "bg-yellow-100 text-yellow-800",
-      Low: "bg-green-100 text-green-800",
-    };
-
-    if (!priority) return (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800`}>N/A</span>
-    );
-
-
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          priorityStyles[priority] || "bg-gray-100 text-gray-800"
-        }`}
-      >
-        {priority}
-      </span>
-    );
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   const getSortLabel = () => {
@@ -372,7 +317,6 @@ const AssignedComplaintsPage = () => {
   const sortedAndFilteredComplaints = useMemo(() => {
     let processableComplaints = [...complaints];
 
-
     if (searchTerm) {
       const lowerCaseSearch = searchTerm.toLowerCase().trim();
       const searchWords = lowerCaseSearch.split(/\s+/).filter(word => word.length > 0);
@@ -380,13 +324,11 @@ const AssignedComplaintsPage = () => {
       processableComplaints = processableComplaints.filter(c => {
         if (!c) return false;
         
-       
         const title = (c.title || "").toLowerCase();
         const category = (c.category || "").toLowerCase();
         const complaintId = getComplaintId(c._id).toLowerCase();
         const userName = (c.userId?.name || "").toLowerCase();
         
- 
         const directMatch = 
           title.includes(lowerCaseSearch) ||
           category.includes(lowerCaseSearch) ||
@@ -394,7 +336,6 @@ const AssignedComplaintsPage = () => {
 
         if (directMatch) return true;
         
-  
         if (searchWords.length > 0) {
             const wordMatch = searchWords.every(word => userName.includes(word));
             if (wordMatch) return true;
@@ -411,7 +352,6 @@ const AssignedComplaintsPage = () => {
       processableComplaints = processableComplaints.filter(c => c && filters.priority.includes(c.priority));
     }
 
-  
     if (sortConfig && sortConfig.key) {
       processableComplaints.sort((a, b) => {
         if (!a) return sortConfig.direction === "ascending" ? 1 : -1;
@@ -441,6 +381,13 @@ const AssignedComplaintsPage = () => {
 
     return processableComplaints;
   }, [complaints, sortConfig, filters, searchTerm]);
+
+  // --- PAGINATION CALCULATION ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedAndFilteredComplaints.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedAndFilteredComplaints.length / itemsPerPage);
+  // ------------------------------
 
   const handleFilterChange = (filterType, value, isChecked) => {
     setTempFilters(prev => {
@@ -511,7 +458,7 @@ const AssignedComplaintsPage = () => {
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Assigned Complaints</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Showing: {sortedAndFilteredComplaints.length} complaints (Filtered from {complaints.length})
+              Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedAndFilteredComplaints.length)} of {sortedAndFilteredComplaints.length}
             </p>
           </div>
           
@@ -587,7 +534,7 @@ const AssignedComplaintsPage = () => {
         </div>
 
       <ComplaintsTable
-        complaints={sortedAndFilteredComplaints}
+        complaints={currentItems}
         config={{
           showId: true,
           showTitle: true,
@@ -603,6 +550,69 @@ const AssignedComplaintsPage = () => {
           emptyMessage: "No complaints found matching current criteria.",
         }}
       />
+
+      {/* --- PAGINATION CONTROLS (Google Style) --- */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center mt-6 space-x-2">
+          {/* Previous Button */}
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className={`px-3 py-1 rounded text-sm font-medium ${
+              currentPage === 1
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-blue-600 hover:bg-blue-50 hover:text-blue-800'
+            }`}
+          >
+            Previous
+          </button>
+
+          {/* Page Numbers */}
+          <div className="flex space-x-1">
+            {[...Array(totalPages)].map((_, index) => {
+              const pageNumber = index + 1;
+              // Logic to show limited page numbers if there are too many pages
+              if (
+                totalPages > 10 &&
+                pageNumber !== 1 &&
+                pageNumber !== totalPages &&
+                Math.abs(currentPage - pageNumber) > 2
+              ) {
+                  if (Math.abs(currentPage - pageNumber) === 3) return <span key={pageNumber} className="px-2 text-gray-400">...</span>;
+                  return null;
+              }
+
+              return (
+                <button
+                  key={pageNumber}
+                  onClick={() => setCurrentPage(pageNumber)}
+                  className={`px-3 py-1 rounded text-sm font-medium ${
+                    currentPage === pageNumber
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Next Button */}
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-1 rounded text-sm font-medium ${
+              currentPage === totalPages
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-blue-600 hover:bg-blue-50 hover:text-blue-800'
+            }`}
+          >
+            Next
+          </button>
+        </div>
+      )}
+      {/* ------------------------------------------- */}
 
       {showStatusModal && selectedComplaint && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
