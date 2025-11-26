@@ -1715,9 +1715,18 @@ export default function StudentDashboard() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const dropdownRef = useRef(null);
+  const notificationRef = useRef(null);
+  const notificationButtonRef = useRef(null);
+
   const isHomeRoute =
     location.pathname === "/student-dashboard" ||
     location.pathname === "/student-dashboard/";
+
+  useBackLogoutGuard(navigate, { enabled: isHomeRoute });
+
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+  const closeSidebar = () => setIsSidebarOpen(false);
 
   const clearAllNotifications = async () => {
     try {
@@ -1928,7 +1937,7 @@ export default function StudentDashboard() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropdownRef, notificationRef]);
+  }, []);
 
   useEffect(() => {
     setIsSidebarOpen(false);
@@ -1966,10 +1975,6 @@ export default function StudentDashboard() {
       document.body.style.overflow = originalStyle;
     };
   }, [isSidebarOpen]);
-
-  const dropdownRef = useRef(null);
-  const notificationRef = useRef(null);
-  const notificationButtonRef = useRef(null);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
