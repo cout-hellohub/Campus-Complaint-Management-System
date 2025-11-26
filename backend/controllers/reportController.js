@@ -65,13 +65,36 @@ export const generateMonthlyCommitteeReport = async (req, res) => {
     doc.text(`Medium: ${medium}`);
     doc.text(`Low: ${low}`);
 
-    doc.moveDown().fontSize(16).text("Recent Complaints:");
+    doc.moveDown().fontSize(16).text("5. Recent Complaints:");
 
     complaints.slice(0, 10).forEach((c, idx) => {
       doc.fontSize(12).text(
         `${idx + 1}. ${c.title}  [${c.priority}]  (${c.status})`
       );
     });
+
+    // Top-Priority Complaints (sorted by upvote count, highest first)
+    const topPriorityComplaints = [...complaints]
+      .sort((a, b) => {
+        const aUpvotes = a.upvoteCount || a.upvotes?.length || 0;
+        const bUpvotes = b.upvoteCount || b.upvotes?.length || 0;
+        if (aUpvotes !== bUpvotes) {
+          return bUpvotes - aUpvotes; // Descending order
+        }
+        // Tie-breaker: newer complaints first
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      })
+      .slice(0, 15);
+
+    doc.moveDown().fontSize(16).text("6. Top-Priority Complaints:");
+    if (topPriorityComplaints.length === 0) {
+      doc.fontSize(12).text('No complaints available.');
+    } else {
+      topPriorityComplaints.forEach((c, i) => {
+        const upvotes = c.upvoteCount || c.upvotes?.length || 0;
+        doc.fontSize(12).text(`${i+1}. ${c.title} [${c.priority || 'N/A'}] (${c.status}) | Upvotes: ${upvotes}`);
+      });
+    }
 
     doc.end();
   } catch (error) {
