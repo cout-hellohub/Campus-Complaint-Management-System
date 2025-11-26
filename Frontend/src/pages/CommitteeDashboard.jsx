@@ -1449,6 +1449,13 @@ const CommitteeDashboardHome = () => {
   const [recentComplaints, setRecentComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  let committeeDisplayName = "Committee Dashboard";
+  try {
+    const storedUser = typeof window !== "undefined" ? localStorage.getItem("ccms_user") : null;
+    const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+    committeeDisplayName =
+      parsedUser?.committeeType || parsedUser?.committee || committeeDisplayName;
+  } catch (e) {}
 
   useEffect(() => {
     fetchDashboardData();
@@ -1538,7 +1545,7 @@ const CommitteeDashboardHome = () => {
   if (loading) {
     return (
       <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Committee Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">{committeeDisplayName}</h1>
         <div className="flex items-center justify-center py-12">
           <div className="text-gray-500">Loading dashboard data...</div>
         </div>
@@ -1549,7 +1556,7 @@ const CommitteeDashboardHome = () => {
   if (error) {
     return (
       <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Committee Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">{committeeDisplayName}</h1>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
           <button
@@ -1590,7 +1597,7 @@ const CommitteeDashboardHome = () => {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-800">Committee Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-800">{committeeDisplayName}</h1>
         <p className="text-gray-600 mt-2">
           {stats.pending} complaint{stats.pending !== 1 ? 's' : ''} awaiting action.
         </p>
@@ -1800,109 +1807,33 @@ export default function CommitteeDashboard() {
     }
   };
 
-  const handleNotificationClick = (notification) => {
-    if (!notification) return;
-    if (!notification.isRead) {
-      markAsRead(notification._id);
-    }
-    setNotificationDropdownOpen(false);
+  const clearAllNotifications = async () => {
     try {
-      const cid = notification?.complaint?._id || notification?.complaint;
-      if (cid) {
-        navigate(`/committee-dashboard/assigned-complaints?complaintId=${cid}`);
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const ids = (notifications || []).map((n) => n._id).filter(Boolean);
+      if (ids.length === 0) {
         return;
       }
+
+      await Promise.all(
+        ids.map((id) =>
+          axios.delete(`${API_BASE_URL}/notifications/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+        )
+      );
+
+      setNotifications([]);
+      setUnreadCount(0);
     } catch (err) {
-      // ignore navigation errors
+      console.error("Clear all notifications error:", err);
     }
-    navigate("/committee-dashboard/assigned-complaints");
   };
-
-  const handleNotificationDelete = (notification) => {
-    if (!notification) return;
-    deleteNotification(notification._id);
-  };
-
-  const handleBellClick = () => {
-    setNotificationDropdownOpen((prev) => {
-      const next = !prev;
-      if (!prev) {
-        fetchNotifications();
-      }
-      return next;
-    });
-  };
-
-  // Fetch notifications on component mount and set up polling
-  useEffect(() => {
-    fetchNotifications();
-    
-    // Poll for new notifications every 30 seconds
-    const pollInterval = setInterval(fetchNotifications, 30000);
-    
-    return () => clearInterval(pollInterval);
-  }, []);
-
-  const handleLogout = () => {
-    // Clear stored auth data like the student dashboard does
-    localStorage.removeItem("ccms_token");
-    localStorage.removeItem("ccms_user");
-    // Use replace to prevent navigating back into a protected route
-    navigate("/login", { replace: true });
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
-        setNotificationDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [dropdownRef, notificationsRef]);
-
-  useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setIsSidebarOpen(false);
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        closeSidebar();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  useEffect(() => {
-    if (!isSidebarOpen) {
-      return undefined;
-    }
-
-    const originalStyle = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = originalStyle;
-    };
-  }, [isSidebarOpen]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -1927,6 +1858,7 @@ export default function CommitteeDashboard() {
           loadingNotifications={loadingNotifications}
           onBellClick={handleBellClick}
           onMarkAllRead={markAllAsRead}
+          onClearAllNotifications={clearAllNotifications}
           onNotificationClick={handleNotificationClick}
           onNotificationDelete={handleNotificationDelete}
           notificationDropdownOpen={notificationDropdownOpen}

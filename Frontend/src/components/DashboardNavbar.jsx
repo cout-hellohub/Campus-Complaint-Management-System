@@ -28,6 +28,7 @@ const DashboardNavbar = ({
   onMenuToggle,
   isSidebarOpen = false,
   menuButtonTestId = "sidebar-menu-button",
+  onClearAllNotifications,
   testIds = {},
 }) => {
   const {
@@ -99,15 +100,25 @@ const DashboardNavbar = ({
                 <h3 className="font-semibold text-sm sm:text-base text-gray-800" data-testid={notificationsTitleTestId}>
                   Notifications
                 </h3>
-                {unreadCount > 0 && onMarkAllRead && (
-                  <button
-                    onClick={onMarkAllRead}
-                    className="text-xs sm:text-base text-blue-600 hover:text-blue-800 active:text-blue-900 font-medium touch-manipulation"
-                    data-testid={markAllReadButtonTestId}
-                  >
-                    Mark all as read
-                  </button>
-                )}
+                <div className="flex items-center gap-3">
+                  {notifications.length > 0 && onClearAllNotifications && (
+                    <button
+                      onClick={onClearAllNotifications}
+                      className="text-[11px] sm:text-xs text-red-600 hover:text-red-700 active:text-red-800 font-medium touch-manipulation whitespace-nowrap"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                  {unreadCount > 0 && onMarkAllRead && (
+                    <button
+                      onClick={onMarkAllRead}
+                      className="text-xs sm:text-base text-blue-600 hover:text-blue-800 active:text-blue-900 font-medium touch-manipulation whitespace-nowrap"
+                      data-testid={markAllReadButtonTestId}
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="overflow-y-auto flex-1">
                 {loadingNotifications ? (

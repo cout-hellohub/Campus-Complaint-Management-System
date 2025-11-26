@@ -205,14 +205,17 @@ const ComplaintsTable = ({
       case "committee-actions":
         return (
           <div className="flex gap-2">
-            {onUpdateStatus && (
-              <button
-                onClick={() => complaint && onUpdateStatus(complaint)}
-                className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-              >
-                Update Status
-              </button>
-            )}
+            {onUpdateStatus &&
+              complaint &&
+              complaint.status !== "resolved" &&
+              complaint.status !== "rejected" && (
+                <button
+                  onClick={() => onUpdateStatus(complaint)}
+                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                >
+                  Update Status
+                </button>
+              )}
             {onView && (
               <button
                 onClick={() => complaint && onView(complaint)}

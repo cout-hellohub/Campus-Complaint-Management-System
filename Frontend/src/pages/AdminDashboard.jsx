@@ -2112,7 +2112,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const dismissNotification = async (notificationId, isRead) => {
+  const deleteNotification = async (notificationId) => {
     try {
       const token = localStorage.getItem("ccms_token");
       if (!token) return;
@@ -2125,15 +2125,41 @@ export default function AdminDashboard() {
       });
 
       setNotifications((prev) => prev.filter((notification) => notification._id !== notificationId));
-      if (!isRead) {
-        if (typeof data?.unreadCount === "number") {
-          setUnreadCount(data.unreadCount);
-        } else {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
+      if (typeof data?.unreadCount === "number") {
+        setUnreadCount(data.unreadCount);
+      } else {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
       }
     } catch (error) {
-      console.error("Admin delete notification error", error);
+      console.error("Delete notification error:", error);
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const ids = (notifications || []).map((n) => n._id).filter(Boolean);
+      if (ids.length === 0) {
+        return;
+      }
+
+      await Promise.all(
+        ids.map((id) =>
+          axios.delete(`${API_BASE_URL}/notifications/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+        )
+      );
+
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Clear all notifications error:", err);
     }
   };
 
@@ -2248,6 +2274,7 @@ export default function AdminDashboard() {
           loadingNotifications={loadingNotifications}
           onBellClick={handleBellClick}
           onMarkAllRead={markAllAsRead}
+          onClearAllNotifications={clearAllNotifications}
           onNotificationClick={handleNotificationClick}
           onNotificationDelete={handleNotificationDelete}
           notificationDropdownOpen={notificationDropdownOpen}

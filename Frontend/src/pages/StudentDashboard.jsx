@@ -1709,20 +1709,43 @@ export default function StudentDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
-  const notificationRef = useRef(null);
-  const notificationButtonRef = useRef(null);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
   const isHomeRoute =
     location.pathname === "/student-dashboard" ||
     location.pathname === "/student-dashboard/";
-  useBackLogoutGuard(navigate, { enabled: isHomeRoute });
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
-  const closeSidebar = () => setIsSidebarOpen(false);
+
+  const clearAllNotifications = async () => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const ids = (notifications || []).map((n) => n._id).filter(Boolean);
+      if (ids.length === 0) {
+        return;
+      }
+
+      await Promise.all(
+        ids.map((id) =>
+          axios.delete(`${API_BASE_URL}/notifications/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+        )
+      );
+
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Clear all notifications error:", err);
+    }
+  };
 
   // load logged-in user (stored at login) and derive display values
   let _storedUser = null;
@@ -1944,6 +1967,9 @@ export default function StudentDashboard() {
     };
   }, [isSidebarOpen]);
 
+  const dropdownRef = useRef(null);
+  const notificationRef = useRef(null);
+  const notificationButtonRef = useRef(null);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -1968,6 +1994,7 @@ export default function StudentDashboard() {
           loadingNotifications={loadingNotifications}
           onBellClick={handleBellClick}
           onMarkAllRead={markAllAsRead}
+          onClearAllNotifications={clearAllNotifications}
           onNotificationClick={handleNotificationClick}
           onNotificationDelete={handleNotificationDelete}
           notificationDropdownOpen={notificationDropdownOpen}
