@@ -1454,7 +1454,10 @@ const CommitteeDashboardHome = () => {
     const storedUser = typeof window !== "undefined" ? localStorage.getItem("ccms_user") : null;
     const parsedUser = storedUser ? JSON.parse(storedUser) : null;
     committeeDisplayName =
-      parsedUser?.committeeType || parsedUser?.committee || committeeDisplayName;
+      parsedUser?.name ||
+      parsedUser?.committeeType ||
+      parsedUser?.committee ||
+      committeeDisplayName;
   } catch (e) {}
 
   useEffect(() => {
@@ -1697,12 +1700,13 @@ export default function CommitteeDashboard() {
   } catch (e) {
     currentUser = null;
   }
-  const profileInitial = currentUser?.committeeType
-    ? currentUser.committeeType.charAt(0).toUpperCase()
-    : currentUser?.name
-    ? currentUser.name.charAt(0).toUpperCase()
-    : 'C';
-  const profileName = currentUser?.committeeType ?? currentUser?.name ?? 'Committee Name';
+  const profileLabel =
+    currentUser?.name ||
+    currentUser?.committeeType ||
+    currentUser?.committee ||
+    "Committee Name";
+  const profileInitial = profileLabel ? profileLabel.charAt(0).toUpperCase() : "C";
+  const profileName = profileLabel;
 
   // Fetch notifications
   const fetchNotifications = async () => {
