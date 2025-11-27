@@ -993,3 +993,172 @@ export const updateComplaintStatus = async (req, res) => {
   }
 };
 
+/**
+ * Get all available committees
+ * GET /api/committees
+ */
+export const getCommittees = async (req, res) => {
+  try {
+    // Return the list of valid committee categories
+    const committees = [
+      'Internal Complaints Committee',
+      'Hostel Management',
+      'Cafeteria',
+      'Tech-Support',
+      'Sports',
+      'Academic',
+      'Annual Fest',
+      'Cultural',
+      'Student Placement',
+      'Admin'
+    ];
+
+    res.status(200).json({
+      committees,
+    });
+  } catch (error) {
+    console.error('Get Committees Error:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to fetch committees',
+    });
+  }
+};
+
+/**
+ * Forward a complaint to another committee (Committee only)
+ * PUT /api/complaints/:id/forward
+ */
+export const forwardComplaint = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newCommitteeId } = req.body;
+    const user = req.user;
+
+    // Validate that user is a committee member
+    if (user.role !== 'committee') {
+      return res.status(403).json({
+        message: 'Only committee members can forward complaints',
+      });
+    }
+
+    // Validate newCommitteeId
+    if (!newCommitteeId || typeof newCommitteeId !== 'string') {
+      return res.status(400).json({
+        message: 'newCommitteeId is required and must be a string',
+      });
+    }
+
+    // Find the complaint
+    const complaint = await Complaint.findById(id);
+
+    if (!complaint) {
+      return res.status(404).json({
+        message: 'Complaint not found',
+      });
+    }
+
+    // Validate that the new committee is a valid category
+    const validCategories = [
+      'Internal Complaints Committee',
+      'Internal Complaints',
+      'Hostel Management',
+      'Cafeteria',
+      'Tech-Support',
+      'Sports',
+      'Academic',
+      'Annual Fest',
+      'Cultural',
+      'Student Placement',
+      'Admin'
+    ];
+
+    if (!validCategories.includes(newCommitteeId)) {
+      return res.status(400).json({
+        message: 'Invalid committee. Please select a valid committee.',
+      });
+    }
+
+    // Verify that the user belongs to the committee that currently has the complaint
+    const allowedCategory = resolveCommitteeCategory(user.committeeType);
+    const normalizedComplaintCategory = normalizeCategory(complaint.category);
+    const normalizedAllowedCategory = normalizeCategory(allowedCategory);
+
+    if (normalizedComplaintCategory !== normalizedAllowedCategory) {
+      return res.status(403).json({
+        message: 'You do not have permission to forward this complaint. It is not assigned to your committee.',
+      });
+    }
+
+    // Prevent forwarding to the same committee
+    if (normalizeCategory(newCommitteeId) === normalizedComplaintCategory) {
+      return res.status(400).json({
+        message: 'Cannot forward complaint to the same committee',
+      });
+    }
+
+    // Store the old committee before updating
+    const oldCommittee = complaint.category;
+
+    // Update the complaint category
+    complaint.category = newCommitteeId;
+
+    // Ensure history array exists
+    if (!complaint.history) {
+      complaint.history = [];
+    }
+
+    // Append to history
+    complaint.history.push({
+      action: 'MANUAL_FORWARD',
+      fromCommittee: oldCommittee,
+      toCommittee: newCommitteeId,
+      timestamp: new Date(),
+      performedBy: user._id,
+    });
+
+    await complaint.save();
+
+    // Populate the updated complaint
+    await complaint.populate('userId', 'name email');
+    await complaint.populate('history.performedBy', 'name email');
+
+    // Create notifications for the new committee members
+    try {
+      const normalizedNewCategory = normalizeCategory(newCommitteeId);
+      const committeeUsers = await User.find({ role: 'committee' }).select('_id committeeType name email');
+      const recipients = committeeUsers.filter((u) => {
+        const userCategory = resolveCommitteeCategory(u.committeeType);
+        return normalizeCategory(userCategory) === normalizedNewCategory;
+      });
+
+      if (recipients.length > 0) {
+        const notifPromises = recipients.map((r) => {
+          const message = `Complaint "${complaint.title}" has been forwarded to your committee.`;
+          return Notification.create({
+            user: r._id,
+            complaint: complaint._id,
+            type: 'general',
+            message,
+            data: { assignedCategory: newCommitteeId, complaintId: complaint._id, assignedTo: r._id },
+          });
+        });
+
+        await Promise.all(notifPromises);
+      }
+    } catch (notifyErr) {
+      console.error('Failed to create committee notifications:', notifyErr);
+      // Don't fail the request if notification creation fails
+    }
+
+    res.status(200).json({
+      message: 'Complaint forwarded successfully',
+      complaint: complaint.toObject(),
+    });
+  } catch (error) {
+    console.error('Forward Complaint Error:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to forward complaint',
+    });
+  }
+};
+

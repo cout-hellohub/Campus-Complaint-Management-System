@@ -97,6 +97,30 @@ const ComplaintSchema = new mongoose.Schema({
             }
         }],
         default: [],
+    },
+    history: {
+        // Track complaint actions (forwarding, etc.)
+        type: [{
+            action: {
+                type: String,
+                required: true,
+            },
+            fromCommittee: {
+                type: String,
+            },
+            toCommittee: {
+                type: String,
+            },
+            timestamp: {
+                type: Date,
+                default: Date.now,
+            },
+            performedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+            }
+        }],
+        default: [],
     }
 }, { timestamps: true });
 

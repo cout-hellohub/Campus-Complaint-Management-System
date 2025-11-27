@@ -14,6 +14,7 @@ import {
   getAllComplaints,
   updateComplaintStatus,
   deleteComplaint,
+  forwardComplaint,
 } from '../controllers/complaintController.js';
 
 const router = express.Router();
@@ -42,6 +43,7 @@ router.get('/assigned/stats', protect, getAssignedComplaintsStats); // Stats for
 router.get('/assigned', protect, getAssignedComplaints); // Assigned complaints for committee
 router.post('/:id/upvote', protect, upvoteComplaint); // Upvote a public complaint
 router.patch('/:id/status', protect, updateComplaintStatus); // Update complaint status (admin/committee)
+router.put('/:id/forward', protect, forwardComplaint); // Forward complaint to another committee (committee only)
 router.delete('/:id', protect, deleteComplaint); // Delete complaint (students only)
 router.get('/:id', protect, getComplaint);
 

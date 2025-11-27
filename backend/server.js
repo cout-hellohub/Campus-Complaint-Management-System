@@ -9,6 +9,7 @@ import complaintRoutes from "./routes/complaintRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import committeeRoutes from "./routes/committeeRoutes.js";
 import { dirname } from "path";
 import path from "path";
 import fs from "fs";
@@ -107,6 +108,7 @@ app.use("/api/complaints", complaintRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/committee-analytics', analyticsRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/committees", committeeRoutes);
 
 //  Centralized Multer and file upload error handling
 app.use((err, req, res, next) => {

@@ -135,6 +135,10 @@ const AssignedComplaintsPage = () => {
   const [updating, setUpdating] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [toast, setToast] = useState(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [committees, setCommittees] = useState([]);
+  const [selectedCommittee, setSelectedCommittee] = useState("");
+  const [forwarding, setForwarding] = useState(false);
 
   // --- STATE FOR SEARCH, SORTING, AND FILTERING ---
   const [sortConfig, setSortConfig] = useState(null); 
@@ -166,7 +170,30 @@ const AssignedComplaintsPage = () => {
     }
 
     fetchAssignedComplaints();
+    fetchCommittees();
   }, [location.search]);
+
+  const fetchCommittees = async () => {
+    try {
+      const token = localStorage.getItem("ccms_token");
+      if (!token) return;
+
+      const { data } = await axios.get(
+        `${API_BASE_URL}/committees`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setCommittees(data.committees || []);
+    } catch (err) {
+      console.error("Fetch Committees Error:", err);
+      // Don't show error toast, just log it
+    }
+  };
 
   const fetchAssignedComplaints = async () => {
     try {
@@ -280,6 +307,59 @@ const AssignedComplaintsPage = () => {
   const openViewModal = (complaint) => {
     setSelectedComplaint(complaint);
     setShowViewModal(true);
+  };
+
+  const openForwardModal = (complaint) => {
+    setSelectedComplaint(complaint);
+    setSelectedCommittee("");
+    setShowForwardModal(true);
+  };
+
+  const handleForward = async () => {
+    if (!selectedCommittee) {
+      showToast("Please select a committee to forward to.", "error");
+      return;
+    }
+
+    if (!selectedComplaint) {
+      showToast("No complaint selected.", "error");
+      return;
+    }
+
+    try {
+      setForwarding(true);
+      const token = localStorage.getItem("ccms_token");
+
+      await axios.put(
+        `${API_BASE_URL}/complaints/${selectedComplaint._id}/forward`,
+        {
+          newCommitteeId: selectedCommittee,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      showToast("Complaint forwarded successfully.", "success");
+      setShowForwardModal(false);
+      setSelectedComplaint(null);
+      setSelectedCommittee("");
+      
+      // Refresh the complaints list
+      await fetchAssignedComplaints();
+    } catch (err) {
+      console.error("Forward Complaint Error:", err);
+      showToast(
+        err?.response?.data?.message ||
+          "Failed to forward complaint. Please try again.",
+        "error"
+      );
+    } finally {
+      setForwarding(false);
+    }
   };
 
   // --- HELPER FUNCTIONS ---
@@ -718,6 +798,15 @@ const AssignedComplaintsPage = () => {
                       <strong>Filed By:</strong> {selectedComplaint.userId?.name || 'Anonymous'}
                     </div>
                 </div>
+
+                <div className="mt-4">
+                  <button
+                    onClick={() => openForwardModal(selectedComplaint)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    Forward to Another Committee
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -751,6 +840,72 @@ const AssignedComplaintsPage = () => {
                   })}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FORWARD MODAL */}
+      {showForwardModal && selectedComplaint && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Forward Complaint
+            </h2>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Complaint:</strong> {selectedComplaint.title}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Current Committee:</strong> {selectedComplaint.category}
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Select Committee to Forward To
+              </label>
+              <select
+                value={selectedCommittee}
+                onChange={(e) => setSelectedCommittee(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                <option value="">-- Select Committee --</option>
+                {committees
+                  .filter((c) => c !== selectedComplaint.category)
+                  .map((committee) => (
+                    <option key={committee} value={committee}>
+                      {committee}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                Are you sure you want to forward this complaint to{" "}
+                <strong>{selectedCommittee || "another committee"}</strong>?
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleForward}
+                disabled={forwarding || !selectedCommittee}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {forwarding ? "Forwarding..." : "Forward"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowForwardModal(false);
+                  setSelectedCommittee("");
+                }}
+                disabled={forwarding}
+                className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
