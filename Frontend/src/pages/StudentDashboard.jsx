@@ -102,7 +102,7 @@ const DeleteConfirmationModal = ({
             <FaTimes />
           </button>
         </div>
-        <p className="mb-6 text-sm text-gray-600">{message}</p>
+        <p className="mb-6 text-sm text-gray-600 break-words whitespace-pre-line">{message}</p>
         <div className="flex justify-end gap-3">
           <button
             type="button"
@@ -364,6 +364,11 @@ const MyComplaintsPage = () => {
   const getComplaintId = (id) => {
     if (!id) return "N/A";
     return `CC${id.slice(-6).toUpperCase()}`;
+  };
+
+  const shortText = (text) => {
+    if (!text) return "";
+    return text.length > 25 ? text.substring(0, 25) + "…" : text;
   };
 
   const sortedAndFilteredComplaints = useMemo(() => {
@@ -811,7 +816,7 @@ const MyComplaintsPage = () => {
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         title="Delete Complaint"
-        message={`Are you sure you want to delete "${deleteTarget?.title || "this complaint"}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete complaint ${getComplaintId(deleteTarget?._id)} (${shortText(deleteTarget?.description || "")})?\n\nThis action cannot be undone.`}
         onCancel={closeDeleteModal}
         onConfirm={handleDelete}
         loading={Boolean(deletingId && deleteTarget && deletingId === deleteTarget._id)}
@@ -975,6 +980,11 @@ const ComplaintDetailPage = () => {
     return `CC${id.slice(-6).toUpperCase()}`;
   };
 
+  const shortText = (text) => {
+    if (!text) return "";
+    return text.length > 25 ? text.substring(0, 25) + "…" : text;
+  };
+
   if (loading) {
     return (
       <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -1111,7 +1121,7 @@ const ComplaintDetailPage = () => {
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         title="Delete Complaint"
-        message={`Are you sure you want to delete "${complaint?.title || "this complaint"}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete complaint ${getComplaintId(complaint?._id)} (${shortText(complaint?.description || "")})?\n\nThis action cannot be undone.`}
         onCancel={() => {
           if (!deleting) {
             setShowDeleteModal(false);
