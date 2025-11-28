@@ -34,8 +34,11 @@ const ResetPassword = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>\/?]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      setError(
+        "Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
+      );
       setLoading(false);
       return;
     }
@@ -173,6 +176,7 @@ const ResetPassword = () => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
+            <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters and include uppercase, lowercase, number, and special character.</p>
           </div>
 
           <div>
