@@ -33,8 +33,7 @@
 //     const { complaintId, committee } = await fileComplaintFlow(page, addPage, {
 //       title: "Integrated Test Issue",
 //       description:
-//         "This is a full regression scenario to ensure complaint creation, routing, and table visibility.",
-//       location: "Integration Block 1",
+//         "This is a full regression scenario to ensure complaint creation, routing, and table visibility. Integration Block 1",
 //       type: "Public",
 //       files: ["e2e/src/data/test-files/image-2MB.jpg"],
 //     });
@@ -91,7 +90,6 @@
 //     const { complaintId } = await fileComplaintFlow(page, addPage, {
 //       title: "Anonymous Issue",
 //       description: "Testing anonymous complaint creation through integrated regression.",
-//       location: "",
 //       type: "Public",
 //       isAnonymous: true,
 //     });

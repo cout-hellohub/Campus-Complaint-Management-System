@@ -7,7 +7,6 @@ import API_BASE_URL from "../config/api.js";
 const INITIAL_FORM_STATE = {
   title: "",
   desc: "",
-  location: "",
   type: "Public",
   isAnonymous: false,
 };
@@ -372,13 +371,11 @@ export default function AddComplaintPage() {
       
       const cleanedTitle = clean(form.title || '');
       const cleanedDesc = clean(form.desc || '');
-      const cleanedLocation = clean(form.location || '');
 
       // Create FormData for file uploads
       const formData = new FormData();
       formData.append("title", cleanedTitle);
       formData.append("description", cleanedDesc);
-      formData.append("location", cleanedLocation);
       formData.append("type", form.type);
       formData.append("isAnonymous", form.isAnonymous ? "true" : "false");
 
@@ -650,7 +647,7 @@ export default function AddComplaintPage() {
               }}
               maxLength={3000} // ensures paste/hold typing is blocked beyond limit
               rows={6}
-              placeholder="Describe the issue with sufficient detail and context."
+              placeholder="Describe the issue with sufficient detail and context. Please provide a location if applicable."
               className={`w-full mt-1 border ${
                 errors.some((err) => err.toLowerCase().includes("description"))
                   ? "border-red-500"
@@ -672,24 +669,6 @@ export default function AddComplaintPage() {
                 {form.desc.length >= 3000 && " — Character limit reached"}
               </p>
             </div>
-          </div>
-
-          {/* Location */}
-          <div data-testid="location-field-container">
-            <label 
-              className="block text-sm font-medium text-gray-700"
-              data-testid="location-label"
-            >
-              Location (optional)
-            </label>
-            <input
-              name="location"
-              value={form.location}
-              onChange={handleChange}
-              placeholder="e.g., Hostel A Room 214 / C-Block 2nd Floor"
-              className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 "
-              data-testid="location-input"
-            />
           </div>
 
           {/* File Upload */}

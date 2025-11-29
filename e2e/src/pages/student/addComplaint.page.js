@@ -10,7 +10,6 @@ export class AddComplaintPage extends BasePage {
 
   titleInput()        { return this.getTestId("title-input"); }
   descInput()         { return this.getTestId("description-input"); }
-  locationInput()     { return this.getTestId("location-input"); }
   fileInput()         { return this.getTestId("file-input"); }
 
   personalRadio()     { return this.getTestId("type-personal-radio"); }
@@ -35,10 +34,6 @@ export class AddComplaintPage extends BasePage {
 
   async fillDescription(value) {
     await this.descInput().fill(value);
-  }
-
-  async fillLocation(value) {
-    await this.locationInput().fill(value);
   }
 
   async uploadFile(filePath) {

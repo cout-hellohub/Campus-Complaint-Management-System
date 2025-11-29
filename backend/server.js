@@ -13,6 +13,7 @@ import committeeRoutes from "./routes/committeeRoutes.js";
 import { dirname } from "path";
 import path from "path";
 import fs from "fs";
+import { startCleanupJob } from "./utils/cleanupJob.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -87,7 +88,10 @@ if (!mongoURI) {
 
 mongoose
   .connect(mongoURI)
-  .then(() => console.log(" MongoDB connected..."))
+  .then(() => {
+    console.log(" MongoDB connected...");
+    startCleanupJob();
+  })
   .catch((err) => {
     console.error(" MongoDB connection failed:", err);
     process.exit(1);

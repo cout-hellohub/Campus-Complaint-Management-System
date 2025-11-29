@@ -31,8 +31,7 @@ test.describe("File Complaint - POSITIVE FLOW", () => {
     const result = await fileComplaintFlow(page, addComplaintPage, {
       title: "Water leakage in hostel bathroom",
       description:
-        "There is continuous water leakage in the 2nd-floor bathroom. The floor becomes slippery and dangerous. Issue ongoing for 3 days.",
-      location: "Hostel A - 2nd Floor Bathroom",
+        "There is continuous water leakage in the 2nd-floor bathroom. The floor becomes slippery and dangerous. Issue ongoing for 3 days. Hostel A - 2nd Floor Bathroom",
       type: "Public",
       isAnonymous: false,
       files: ["e2e/src/data/test-files/image-2MB.jpg"],

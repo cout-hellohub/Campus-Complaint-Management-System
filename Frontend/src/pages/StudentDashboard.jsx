@@ -1069,12 +1069,6 @@ const ComplaintDetailPage = () => {
             <p className="text-sm text-gray-600 font-semibold">Filed On</p>
             <p className="text-gray-800">{formatDate(complaint.createdAt)}</p>
           </div>
-          {complaint.location && (
-            <div>
-              <p className="text-sm text-gray-600 font-semibold">Location</p>
-              <p className="text-gray-800">{complaint.location}</p>
-            </div>
-          )}
         </div>
 
         <div className="mb-6">

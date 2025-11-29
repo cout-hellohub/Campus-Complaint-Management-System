@@ -64,7 +64,7 @@ export const resolveCommitteeCategory = (committeeType) => {
  */
 export const createComplaint = async (req, res) => {
   try {
-    const { title, description, location, type, isAnonymous } = req.body;
+    const { title, description, type, isAnonymous } = req.body;
     const userId = req.user._id; // From auth middleware
 
     // Validate required fields
@@ -110,7 +110,6 @@ export const createComplaint = async (req, res) => {
       userId,
       title: title.trim(),
       description: description.trim(),
-      location: location?.trim() || '',
       category: normalizedCategory,
       priority: aiResult.priority,
       type: type === 'Personal' ? 'personal' : 'general',
@@ -945,6 +944,7 @@ export const updateComplaintStatus = async (req, res) => {
     // Update status and track previous status
     const previousStatus = complaint.status;
     complaint.status = status;
+    complaint.statusUpdatedAt = Date.now();
 
     // Add to status history
     complaint.statusHistory.push({

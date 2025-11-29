@@ -1,7 +1,7 @@
 /**
  * File Complaint Flow (NEW)
  * - Fills the Add Complaint form
- * - Supports: title, description, location, type, isAnonymous, files
+ * - Supports: title, description, type, isAnonymous, files
  * - Waits for success modal
  * - Extracts complaint ID + routed committee
  */
@@ -9,7 +9,6 @@
 export async function fileComplaintFlow(page, addComplaintPage, {
   title,
   description,
-  location = "",
   type = "Public",
   isAnonymous = false,
   files = [],
@@ -17,10 +16,6 @@ export async function fileComplaintFlow(page, addComplaintPage, {
   // Fill the basic fields
   await addComplaintPage.fillTitle(title);
   await addComplaintPage.fillDescription(description);
-
-  if (location) {
-    await addComplaintPage.fillLocation(location);
-  }
 
   // Select complaint type
   if (type === "Personal") {
