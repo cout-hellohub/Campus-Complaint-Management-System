@@ -1,8 +1,3 @@
-/**
- * Complaint Detail Page
- * Only getters + primitive actions.
- */
-
 import { BasePage } from '../_base.page.js';
 
 export class ComplaintDetailPage extends BasePage {

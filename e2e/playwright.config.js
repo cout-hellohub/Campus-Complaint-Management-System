@@ -1,8 +1,16 @@
 import { defineConfig, devices } from '@playwright/test';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure we load the .env inside the e2e folder (not repo root)
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const FRONTEND_PORT = 5173;
-const BACKEND_PORT = 3001;
+const BACKEND_PORT = 5000;
 
 export default defineConfig({
   testDir: './tests',
@@ -40,13 +48,13 @@ export default defineConfig({
 
   webServer: [
     {
-      command: `npm run dev --prefix ../backend`,
+      command: `npm run dev --prefix backend`,
       url: `http://localhost:${BACKEND_PORT}`,
       timeout: 120_000,
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: `npm run preview --prefix ../Frontend -- --port ${FRONTEND_PORT}`,
+      command: `npm run dev --prefix Frontend`,
       url: `http://localhost:${FRONTEND_PORT}`,
       timeout: 120_000,
       reuseExistingServer: !process.env.CI,

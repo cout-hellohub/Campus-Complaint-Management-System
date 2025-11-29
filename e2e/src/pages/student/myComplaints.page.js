@@ -1,17 +1,9 @@
-/**
- * My Complaints Page Object
- * Extends BaseComplaintsTablePage
- * Only locators + primitive actions
- */
-
 import { BaseComplaintsTablePage } from './_baseComplaintsTable.page.js';
 
 export class MyComplaintsPage extends BaseComplaintsTablePage {
   constructor(page) {
     super(page);
   }
-
-  // ========= LOCATORS =========
 
   get pageTitle() { 
     return this.getTestId('my-complaints-page-title'); 
@@ -29,8 +21,6 @@ export class MyComplaintsPage extends BaseComplaintsTablePage {
     return this.getComplaintRowByIndex(rowIndex).getByTestId('complaint-withdraw-btn');
   }
 
-  // ========= ACTIONS =========
-
   async clickEdit(rowIndex) {
     await this.getEditButton(rowIndex).click();
   }
@@ -38,8 +28,6 @@ export class MyComplaintsPage extends BaseComplaintsTablePage {
   async clickWithdraw(rowIndex) {
     await this.getWithdrawButton(rowIndex).click();
   }
-
-  // ========= READS =========
 
   async pageTitleText() {
     return this.pageTitle.textContent();
@@ -56,9 +44,6 @@ export class MyComplaintsPage extends BaseComplaintsTablePage {
   async isWithdrawButtonVisible(rowIndex) {
     return this.getWithdrawButton(rowIndex).isVisible();
   }
-
-  // ========= FILTER & SORT ACTIONS =========
-
   async filterByStatus(status) {
     // Click filter button (button with filter SVG icon) - it's the button with the filter funnel SVG
     const filterButton = this.page.locator('button').filter({ 

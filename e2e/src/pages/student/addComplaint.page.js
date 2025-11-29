@@ -1,4 +1,6 @@
 import { BasePage } from "../_base.page.js";
+import path from "path";
+import fs from "fs";
 
 export class AddComplaintPage extends BasePage {
   constructor(page) {
@@ -37,7 +39,29 @@ export class AddComplaintPage extends BasePage {
   }
 
   async uploadFile(filePath) {
-    await this.fileInput().setInputFiles(filePath);
+    // Robust path resolution: allow running tests from root or e2e directory.
+    const original = filePath;
+    const candidates = [];
+
+    // Absolute path as-is.
+    if (path.isAbsolute(filePath)) candidates.push(filePath);
+
+    // Relative from current working directory.
+    candidates.push(path.resolve(process.cwd(), filePath));
+
+    // If starts with e2e/, try stripped and also original.
+    if (/^e2e[\\/]/i.test(filePath)) {
+      const stripped = filePath.replace(/^e2e[\\/]/i, "");
+      candidates.push(path.resolve(process.cwd(), stripped));
+    } else {
+      candidates.push(path.resolve(process.cwd(), "e2e", filePath));
+    }
+
+    const existing = candidates.find(p => fs.existsSync(p));
+    if (!existing) {
+      throw new Error(`Test file not found. Tried: ${candidates.join(" | ")} (input: ${original})`);
+    }
+    await this.fileInput().setInputFiles(existing);
   }
 
   async selectPersonal() {
@@ -57,8 +81,6 @@ export class AddComplaintPage extends BasePage {
     await this.submitButton().click();
   }
 
-  // --------------------- Success Modal Helpers ---------------------
-
   async waitForSuccessModal() {
     await this.successModal().waitFor({ state: "visible", timeout: 15000 });
   }
@@ -70,8 +92,6 @@ export class AddComplaintPage extends BasePage {
   async getCommittee() {
     return (await this.successCommittee().textContent()).trim();
   }
-
-  // --------------------- Error Helpers ---------------------
 
   async getErrorList() {
     return (await this.errorList().textContent()).trim();

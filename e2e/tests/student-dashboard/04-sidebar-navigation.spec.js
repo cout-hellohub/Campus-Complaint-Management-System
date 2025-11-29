@@ -1,9 +1,3 @@
-/**
- * Student Dashboard - Sidebar Navigation Tests
- * Tests: Sidebar Links, Navigation, Active States
- * Tags: @functional @smoke
- */
-
 import { test, expect } from '@playwright/test';
 import { StudentSidebarPage } from '../../src/pages/student/studentSidebar.page.js';
 import { StudentDashboardPage } from '../../src/pages/student/studentDashboard.page.js';

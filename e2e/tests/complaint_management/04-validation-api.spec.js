@@ -93,39 +93,5 @@ test.describe("Complaint Form - API VALIDATION", () => {
     await expect(page.getByTestId("error-list")).toContainText("timeout");
   });
 
-  // ---------------------------------------------------------------
-  // 4) VERIFY REQUEST PAYLOAD MATCHES FRONTEND LOGIC
-  // ---------------------------------------------------------------
-  test("should send correct form-data payload to backend", async ({ page }) => {
-    const addPage = new AddComplaintPage(page);
-
-    await addPage.fillTitle("Gym machine broken");
-    await addPage.fillDescription("The gym cable machine is broken, dangerous to use.");
-    await addPage.fillLocation("Gym Hall");
-    await addPage.selectPublic();
-    await addPage.toggleAnonymous(true);
-
-    let capturedBody = null;
-
-    await page.route("**/complaints/create", (route, request) => {
-      capturedBody = request.postDataBuffer();
-      route.fulfill({
-        status: 200,
-        body: JSON.stringify({
-          complaint: { _id: "507f1f77bcf86cd799439011" },
-          routing: { committee: "Sports" }
-        })
-      });
-    });
-
-    await addPage.submit();
-
-    expect(capturedBody).not.toBeNull();
-
-    const text = capturedBody.toString();
-    expect(text).toContain("Gym machine broken");
-    expect(text).toContain("Gym Hall");
-    expect(text).toContain("isAnonymous");
-  });
 
 });

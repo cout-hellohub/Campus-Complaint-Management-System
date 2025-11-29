@@ -1,9 +1,3 @@
-/**
- * Student Dashboard - Header Tests
- * Tests: Header Display, Notifications, Profile Menu
- * Tags: @functional @smoke
- */
-
 import { test, expect } from '@playwright/test';
 import { StudentDashboardPage } from '../../src/pages/student/studentDashboard.page.js';
 import { loginAsStudent } from '../../utils/login.helper.js';

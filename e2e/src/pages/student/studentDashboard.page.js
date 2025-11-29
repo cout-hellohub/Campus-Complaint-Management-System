@@ -1,8 +1,3 @@
-/**
- * Student Dashboard Page Object
- * PURE POM: Only locators + primitive actions
- */
-
 import { BasePage } from '../_base.page.js';
 
 export class StudentDashboardPage extends BasePage {

@@ -1,17 +1,9 @@
-/**
- * Base Complaints Table Page Object
- * Shared table operations for MyComplaints & AllComplaints
- * Eliminates code duplication (~200 lines)
- */
-
 import { BasePage } from '../_base.page.js';
 
 export class BaseComplaintsTablePage extends BasePage {
   constructor(page) {
     super(page);
   }
-
-  // ========= TABLE ROW ACCESS =========
 
   // get complaint row by ID
   getComplaintRow(complaintId) {
@@ -23,8 +15,6 @@ export class BaseComplaintsTablePage extends BasePage {
     // cellType: 'status', 'title', 'priority', 'date', 'upvotes'
     return this.getTestId(`complaint-cell-${complaintId}-${cellType}`);
   }
-
-  // ========= TABLE ACTIONS =========
 
   // get upvote button for complaint
   getUpvoteButton(complaintId) {
@@ -41,8 +31,6 @@ export class BaseComplaintsTablePage extends BasePage {
     return this.getTestId(`complaint-view-${complaintId}`);
   }
 
-
-  // ========= TABLE STATE =========
 
   // get search input
   getSearchInput() {
@@ -63,14 +51,10 @@ export class BaseComplaintsTablePage extends BasePage {
   getTableRows() {
     return this.page.locator('[data-testid^="complaint-row-"]');
   }
-
   // empty state message
   getEmptyStateMessage() {
     return this.getTestId('table-empty-state');
   }
-
-  // ========= MODAL INTERACTIONS =========
-
   // delete confirmation button
   getDeleteConfirmButton() {
     return this.getTestId('delete-confirm-btn');
@@ -86,9 +70,6 @@ export class BaseComplaintsTablePage extends BasePage {
     return this.getTestId('success-modal');
   }
 
-  /**
-   * Get confirmation modal
-   */
   getConfirmationModal() {
     return this.getTestId('confirmation-modal');
   }

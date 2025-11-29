@@ -1,8 +1,3 @@
-/**
- * Student Sidebar Page Object
- * Navigation only. No state logic.
- */
-
 import { BasePage } from '../_base.page.js';
 
 export class StudentSidebarPage extends BasePage {

@@ -1,8 +1,3 @@
-/**
- * All Complaints Page
- * Extends base table page. Only unique UI locators.
- */
-
 import { BaseComplaintsTablePage } from './_baseComplaintsTable.page.js';
 
 export class AllComplaintsPage extends BaseComplaintsTablePage {
